@@ -28,13 +28,18 @@ TokenParser{ identifier = m_identifier
            , reservedOp = m_reservedOp
            , reserved = m_reserved } = makeTokenParser def
 
+
 formulaparser :: Parser Formula
 formulaparser = try (do {
                        f1 <- simpleformula
+                      ;m_reserved "."
                       ;f2 <- formulaparser
                       ; return (Conjunction f1 f2)
                      })
                  <|> do {f <-simpleformula
+                         
+                         ; return f}
+                   <|> do {f <-simpleformula
                          ; return f}
                     
                 
@@ -43,14 +48,12 @@ simpleformula = try (do {
                       s <- termparser
                      ;p <- termparser
                      ;o <- termparser
-                     ; m_reserved "."
                      ; return (Triple s p o)
                      })
                 <|> do {
                      e1 <- exparser
                      ; m_reserved "=>"
                      ; e2 <- exparser
-                     ; m_reserved "."
                      ; return (Implication e1 e2)
                      
                      }
@@ -68,7 +71,8 @@ exparser = (m_reserved "false" >> return (BE False))
           <|> (m_reserved "{}" >> return (BE True ))
           <|> do {m_reserved "{"
                   ;f <- formulaparser
-                  ;m_reserved "}"
+                  ; optional (m_reserved ".")
+                  ; m_reserved "}"
                   ; return (FE f)
                   }
               
@@ -79,6 +83,7 @@ mainparser = mparser <* eof
             where mparser :: Parser S
                   mparser = do {
                                f <- formulaparser
+                               ;m_reserved "."
                                ; return (Mainformula f)
                                }
    
