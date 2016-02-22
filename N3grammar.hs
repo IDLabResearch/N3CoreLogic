@@ -18,15 +18,16 @@ data Expression = FE Formula | BE Bool deriving Show
 data Formula = Triple Term Term Term | Conjunction Formula Formula | Implication Expression Expression  deriving Show 
 
 def = emptyDef{ commentLine = "#"
-              , opStart = oneOf ".=>"
-              , opLetter = oneOf ".=>"
-              , reservedOpNames = [  ".", "=>"]
-              , reservedNames = ["{}", "{", "}", "false"]
+              , opStart = oneOf "; ,.=><"
+              , opLetter = oneOf "; ,.=><"
+              , reservedOpNames = [";", "<=", ".", "=>"]
+              , reservedNames = [",", ";", "{}", "{", "}", "false"]
               }
 
 TokenParser{ identifier = m_identifier
            , reservedOp = m_reservedOp
-           , reserved = m_reserved } = makeTokenParser def
+           , reserved = m_reserved 
+           , brackets = blanks } = makeTokenParser def
 
 
 formulaparser :: Parser Formula
@@ -36,10 +37,7 @@ formulaparser = try (do {
                       ;f2 <- formulaparser
                       ; return (Conjunction f1 f2)
                      })
-                 <|> do {f <-simpleformula
-                         
-                         ; return f}
-                   <|> do {f <-simpleformula
+                   <|> do {f <- simpleformula
                          ; return f}
                     
                 
@@ -50,13 +48,19 @@ simpleformula = try (do {
                      ;o <- termparser
                      ; return (Triple s p o)
                      })
-                <|> do {
+                <|> try(do {
                      e1 <- exparser
                      ; m_reserved "=>"
                      ; e2 <- exparser
-                     ; return (Implication e1 e2)
-                     
+                     ; return (Implication e1 e2)})
+                  <|> do {
+                     e1 <- exparser
+                     ; m_reserved "<="
+                     ; e2 <- exparser
+                     ; return (Implication e2 e1 )   
                      }
+
+
 
 
                  
@@ -92,3 +96,12 @@ parseN3 inp = case parse mainparser "" inp of
               { Left err -> print err
               ; Right ans -> print  ans
               }
+
+
+
+
+
+
+
+
+
