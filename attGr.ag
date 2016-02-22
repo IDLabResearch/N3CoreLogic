@@ -27,6 +27,7 @@ data Term
    | URI uri :: String
    | Literal l :: String
    | Exp  e :: Expression
+   | Objectlist t1, t2 :: Term
 
 data Expression
    | BE   b  :: Bool
@@ -54,6 +55,7 @@ data CTerm
      | Var t :: String
      | Con c :: String
      | CExp  e :: CExpression
+     | List l1, l2 :: CTerm
 
 data CExpression
    | CBE   b  :: Bool
@@ -91,6 +93,8 @@ attr Formula
    syn eye :: CFormula
    syn eyeVar :: {[String]}
 
+
+
 attr Term
 --Attributes for standard--
    syn n2 :: {[String]}
@@ -102,6 +106,8 @@ attr Term
 --attributes for EYE--
    syn eye :: CTerm
    syn eyeVar :: {[String]}
+--handling Objectlists
+ --  inh sp :: {[Term]}
 
 attr Expression
 --Attributes for standard--
@@ -129,10 +135,11 @@ sem Formula
    | Triple lhs.n2 = (@s.n2 `union` @p.n2) `union` @o.n2
             lhs.n1 = (@s.n1 `union` @p.n1) `union` @o.n1 
             lhs.ex = (@s.ex `union` @p.ex) `union` @o.ex 
-            lhs.transformed = CTriple @s.transformed @p.transformed @o.transformed
+            lhs.transformed = tripleTransform @s.transformed @p.transformed @o.transformed 
             lhs.formula =   @s.formula ++ " " ++ @p.formula ++ " " ++ @o.formula 
             lhs.eye = CTriple @s.eye @p.eye @o.eye  
-            lhs.eyeVar = (@s.eyeVar `union` @p.eyeVar) `union` @o.eyeVar   
+            lhs.eyeVar = (@s.eyeVar `union` @p.eyeVar) `union` @o.eyeVar 
+ 
                
    | Implication lhs.n2 = []
                  lhs.n1 = @e1.n1 `union` @e2.n1
@@ -191,6 +198,15 @@ sem Term
           lhs.transformed = CExp @e.transformed 
           lhs.formula =  @e.formula
           lhs.eye = CExp @e.eye
+
+   | Objectlist lhs.n2 = @t1.n2 `union` @t2.n2
+                lhs.n1 = @t1.n1 `union` @t2.n1
+                lhs.ex = @t1.ex `union` @t2.ex
+                lhs.transformed = List @t1.transformed @t2.transformed
+                
+                
+                
+                
           
 
 sem Expression
@@ -258,6 +274,11 @@ quaf :: [String] -> [String] -> String -> String
 quaf [] [] s = s
 quaf [] (a:as) s = "ForSome " ++ a ++ "." ++ (quaf [] as s)
 quaf (a:as) g s = "ForAll " ++ a ++ "." ++ (quaf as g s)
+
+tripleTransform :: CTerm -> CTerm -> CTerm -> CFormula
+tripleTransform s p (List o o2) = CConjunction (CTriple s p o) (tripleTransform s p o2)
+tripleTransform s p o = CTriple s p o
+
 }
 
 

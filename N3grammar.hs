@@ -13,7 +13,7 @@ import Text.Parsec.Language
 
 
 data S = Mainformula Formula deriving Show
-data Term = URI String | Universal String | Existential String | Literal String | Exp Expression  deriving Show 
+data Term = URI String | Universal String | Existential String | Literal String | Exp Expression | Objectlist Term Term  deriving Show 
 data Expression = FE Formula | BE Bool deriving Show
 data Formula = Triple Term Term Term | Conjunction Formula Formula | Implication Expression Expression  deriving Show 
 
@@ -42,10 +42,10 @@ formulaparser = try (do {
                     
                 
 
-simpleformula = try (do {
+simpleformula =   try (do {
                       s <- termparser
                      ;p <- termparser
-                     ;o <- termparser
+                     ;o <- objectparser
                      ; return (Triple s p o)
                      })
                 <|> try(do {
@@ -60,9 +60,25 @@ simpleformula = try (do {
                      ; return (Implication e2 e1 )   
                      }
 
+              
 
+objectparser = try (do{ o <-termparser
+                  ; m_reserved ","
+                  ; o2 <- objectparser
+                  ; return (Objectlist o o2) } )
+              <|> do{ o <- termparser
+                     ; return o }
+                    
 
-
+{- ocommaparser :: Stream s m t => Formula -> Formula -> Formula
+ocommaparser s2 p  =   try (do {o <- termparser
+                              ; m_reserved ","
+                              ; return (Conjunction  (Triple s2 p o) (ocommaparser s2 p) )
+                              }
+                          )
+                      <|> do { o <- termparser
+                               ; return (Triple s2 p o)} 
+-}
                  
 termparser = fmap URI (char ':' >> m_identifier)
       <|> fmap Universal (char '?' >> m_identifier)
