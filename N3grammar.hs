@@ -2,6 +2,8 @@ module N3grammar
 (
 mainparser
 , parseN3
+--, Formula
+--, Term
 )where
 
 import Control.Applicative((<*))
@@ -25,6 +27,9 @@ data Term =  URI String
            | PredicateObjectList Term Term Term 
            | BlankConstruct Term Term 
            | Blank String 
+--TODO Adjust List in a way that the attribute Grammar can handle it
+           | List [Term]
+           | List2 [Term]
            deriving Show 
 data Expression = FE Formula | BE Bool deriving Show
 data Formula = Triple Term Term Term | Conjunction Formula Formula | Implication Expression Expression deriving Show 
@@ -35,7 +40,7 @@ def = emptyDef{ commentLine = "#"
               , opStart = oneOf "; ,.=><"
               , opLetter = oneOf "; ,.=><"
               , reservedOpNames = [";", "<=", ".", "=>"]
-              , reservedNames = [ "[", "]", ",", ";", "{}", "{", "}", "false"]
+              , reservedNames = [ "(", ")", "[", "]", ",", ";", "{}", "{", "}", "false"]
               }
 
 TokenParser{ identifier = m_identifier
@@ -106,7 +111,24 @@ termparser = fmap URI (char ':' >> m_identifier)
                ; m_reserved "]" 
                ; return (BlankConstruct t o)
           }
+      <|> do {m_reserved "("
+             ; p <- termlist
+             ; m_reserved ")"
+             ; return (List2 p )
+             } 
       
+termlist = do {
+              t <-termparser
+              ; l <-termlist
+              ; return ( [t]++l )
+              }
+          <|> do {
+              return ([])
+              }
+
+
+           
+
 
 exparser :: Parser Expression
 exparser = (m_reserved "false" >> return (BE False))
@@ -137,11 +159,9 @@ parseN3 inp = case parse mainparser "" inp of
               }
 
 
---todo: this works but has to be cleaned up (you can for sure do it shorter)---
 
 
-
-
+--TODO: this works but has to be cleaned up (you can for sure do it shorter)---
 
 
 --function to get rid of blank node constructions in expressions
@@ -154,6 +174,7 @@ cleanUp :: Formula -> String -> Formula
 cleanUp (Implication e1 e2) st = (Implication ( cleanExp e1 (st++show(1)))( cleanExp e2 (st++show(2))))
 cleanUp (Conjunction f1 f2) st = (Conjunction ( cleanUp  f1 (st++show(1)))( cleanUp  f2 (st++show(2))))
 
+--TODO Handle this s-> p ->o pattern via an extra funtion
 cleanUp (Triple (Blank "blank") p o ) st = cleanUp (Triple ( Existential (st++show(1))) p o) (st++show(1))   
 cleanUp (Triple s (Blank "blank") o ) st = cleanUp (Triple  s (Existential (st++show(2))) o) (st++show(2)) 
 cleanUp (Triple s p (Blank "blank") ) st = cleanUp (Triple  s p (Existential (st++show(3)))) (st++show(3)) 
@@ -161,6 +182,20 @@ cleanUp (Triple s p (Blank "blank") ) st = cleanUp (Triple  s p (Existential (st
 cleanUp (Triple (Exp2 e) p o )        st  = cleanUp (Triple ( Exp (cleanExp e (st++show(1)))) p o) (st++show(1)) 
 cleanUp (Triple s (Exp2 e) o )        st  = cleanUp (Triple  s (Exp (cleanExp e (st++show(2)))) o) (st++show(2))
 cleanUp (Triple s p (Exp2 e) )        st  = cleanUp (Triple  s p (Exp (cleanExp e (st++show(3))))) (st++show(3))
+
+
+
+cleanUp (Triple (List2 e) p o )        st  = cleanUp 
+                                              (conjunctions ( (\x -> ((Triple (fst x) p o), (snd x)  ) )(blankInList (List2 e) [][] st 1 ) )) 
+                                              st 
+cleanUp (Triple s (List2 e) o )        st  = cleanUp 
+                                              (conjunctions ( (\x -> ((Triple s (fst x) o), (snd x)  ) )(blankInList (List2 e) [][] st 1 ) )) 
+                                              st 
+cleanUp (Triple s p (List2 e) )        st  = cleanUp 
+                                              (conjunctions ( (\x -> ((Triple s p (fst x)), (snd x)  ) )(blankInList (List2 e) [][] st 1 ) )) 
+                                              st 
+
+
 
 cleanUp (Triple (BlankConstruct a b) p o) st = (\x 
                                                 -> 
@@ -184,17 +219,19 @@ cleanUp f st = f
 
 
 
+blankInList :: Term -> [Term] -> [Formula] -> String -> Int -> (Term, [Formula])
+blankInList (List2 [])                     l l2 st n    = ((List (reverse l)), l2)
+blankInList (List2 ((Blank "blank"):rest)) l l2 st n    = blankInList (List2 rest) ((Existential (st++"_"++show(n))):l) l2 st (n+1)
+blankInList (List2 ((BlankConstruct a b):rest)) l l2 st n = blankInList (List2 rest) ((Existential (st++"_"++show(n))):l) 
+                                                                      ((Triple (Existential (st++"_"++show(n))) a b):l2) st (n+1)
+blankInList (List2 (s:rest))               l l2 st n    = blankInList (List2 rest) (s:l) l2 st n
+blankInList t                              l l2 st n    = (t, l2) 
 
 
 
-
-
-
-
-
-
-
-
+conjunctions :: (Formula, [Formula]) -> Formula
+conjunctions (f, []) = f
+conjunctions (f,  (f1:l)) = conjunctions ((Conjunction f f1), l)
 
 
 
