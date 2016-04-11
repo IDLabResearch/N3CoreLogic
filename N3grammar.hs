@@ -13,6 +13,7 @@ import Text.Parsec.Expr
 import Text.Parsec.Token
 import Text.Parsec.Language
 import Control.Monad.Supply
+import Control.Monad.State
 
 
 data S = Mainformula Formula deriving Show
@@ -103,7 +104,9 @@ termparser = fmap URI (char ':' >> m_identifier)
       <|> try (
               do {
               m_reserved "[]"
-              ;return (Blank "blank")
+              ; l <- getState
+              --; updateState (+1)
+              ;return (Blank (show(l)))
              })
       <|> do { m_reserved "["
                ; t <- termparser
@@ -146,6 +149,7 @@ mainparser :: Parser S
 mainparser = mparser <* eof 
             where mparser :: Parser S
                   mparser = do {
+
                                f <- formulaparser
                                ;m_reserved "."
                                ; return (Mainformula (cleanUp f "blank"))
@@ -158,7 +162,38 @@ parseN3 inp = case parse mainparser "" inp of
               ; Right ans -> print  ans 
               }
 
+-----------some tests
 
+termparser2 = fmap URI (char ':' >> m_identifier)
+      <|> fmap Universal (char '?' >> m_identifier)
+      <|> fmap Existential (char '_' >> char ':' >> m_identifier)
+      <|> fmap Literal ( m_identifier)
+      <|> try (
+              do {
+              m_reserved "[]"
+              ; l <- getState
+              ; updateState (+1)
+              ;return (Blank (show(l)))
+             })
+
+
+
+mainparser2 :: Parsec [Char] Int Term
+mainparser2 = mparser2 <* eof 
+            where mparser2 :: Parsec [Char] Int Term
+                  mparser2 = do {
+                               --Question: How do I set the initial state to 0?
+                               ---putState 0
+                               f <- termparser2
+                               
+                               ; return f
+                               
+                               }
+play :: String -> Either ParseError Term
+play s = runParser mainparser2 0 "parameter" s  -- 0 is the initial value
+
+
+------------------------------------------
 
 
 --TODO: this works but has to be cleaned up (you can for sure do it shorter)---
