@@ -12,9 +12,9 @@ import Text.Parsec.String
 import Text.Parsec.Expr
 import Text.Parsec.Token
 import Text.Parsec.Language
-import Control.Monad.Supply
-import Control.Monad.State
-
+import Text.ParserCombinators.Parsec.Token
+import Text.ParserCombinators.Parsec.Char
+import Text.ParserCombinators.Parsec.Number
 
 data S = Mainformula Formula deriving Show
 data Term =  URI String 
@@ -22,15 +22,12 @@ data Term =  URI String
            | Existential String 
            | Literal String 
            | Exp Expression 
---TODO Exp2 construction should be fixed
-           | Exp2 Expression 
            | Objectlist Term Term 
            | PredicateObjectList Term Term Term 
-           | BlankConstruct Term Term 
-           | Blank String 
---TODO Adjust List in a way that the attribute Grammar can handle it
-           | List [Term]
-           | List2 [Term]
+           | BlankConstruct Term Term Term 
+--TODO I did not find out how the attribute grammar can work on lists, if that is solved I would prefer to use haskell lists here
+           | List Term Term
+           | EmptyList
            deriving Show 
 data Expression = FE Formula | BE Bool deriving Show
 data Formula = Triple Term Term Term | Conjunction Formula Formula | Implication Expression Expression deriving Show 
@@ -41,23 +38,25 @@ def = emptyDef{ commentLine = "#"
               , opStart = oneOf "; ,.=><"
               , opLetter = oneOf "; ,.=><"
               , reservedOpNames = [";", "<=", ".", "=>"]
-              , reservedNames = [ "(", ")", "[", "]", ",", ";", "{}", "{", "}", "false"]
+              , reservedNames = ["\"", "(", ")", "[", "]", ",", ";", "{}", "{", "}", "false", "newBlank"]
               }
 
 TokenParser{ identifier = m_identifier
            , reservedOp = m_reservedOp
-           , reserved = m_reserved  
+           , reserved = m_reserved 
            } = makeTokenParser def
 
---todo: need to make sure that the blanks from both sides are different
-formulaparser :: Parser Formula
+
+formulaparser :: Parsec [Char] Int Formula
 formulaparser = try (do {
-                       f1 <- simpleformula
-                      ;m_reserved "."
+                      f1 <- simpleformula
+                      ; skipMany $ m_reserved ";"
+                      ; m_reserved "."
                       ;f2 <- formulaparser
                       ; return (Conjunction f1 f2)
                      })
-                   <|> do {f <- simpleformula
+                   <|>  do {f <- simpleformula
+                         ; skipMany $ m_reserved ";"
                          ; return f}
                     
                 
@@ -66,211 +65,210 @@ simpleformula =  try (do {
                       s <- termparser
                      ;p <- termparser
                      ;o <- objectparser
-                     ; return (Triple s p o)
+                     ; return (triples (Triple s p o))
                      })
                 <|> try(do {
                      e1 <- exparser
                      ; m_reserved "=>"
                      ; e2 <- exparser
                      ; return (Implication e1 e2)})
-                  <|> do {
+                <|> try (do {
                      e1 <- exparser
                      ; m_reserved "<="
                      ; e2 <- exparser
                      ; return (Implication e2 e1 )   
-                     }
+                     })
 
 
 
 objectparser = try (do{ o <-termparser
                   ; m_reserved ","
                   ; o2 <- objectparser
+                   ; skipMany $ m_reserved ";"
                   ; return (Objectlist o o2) } )
-              <|> try (do{ o <-termparser
+              <|> try (do{ o <- termparser
                   ; m_reserved ";"
                   ; p2 <- termparser
                   ; o2 <- objectparser
+                  ; skipMany $ m_reserved ";"
                   ; return (PredicateObjectList o p2 o2) } )
-              <|> do{ o <- termparser
-                     ; return o }
+              <|> try (do{ o <- termparser
+                    ; skipMany $ m_reserved ";"
+                     ; return o })
                     
 
                  
-termparser = fmap URI (char ':' >> m_identifier)
+termparser = fmap Existential (char '_' >> char ':' >> m_identifier)
+       <|> try (do {
+                   char 'a'
+                   ; space
+                   ; return (URI "rdf_type")
+                   })           
+       <|>     try (do { 
+                     pre <- m_identifier
+                     ; char ':'
+                     ; name <- m_identifier
+                     ; return (URI (pre++"_"++name))
+                     }
+                 )
+      <|> fmap URI (char ':' >> m_identifier)
       <|> fmap Universal (char '?' >> m_identifier)
-      <|> fmap Existential (char '_' >> char ':' >> m_identifier)
-      <|> fmap Literal ( m_identifier)
-      <|> fmap Exp2 ( exparser )
+      <|> do {
+             s <-  sign
+             ;n <- (floating3 True)
+             ; spaces
+             ; return (Literal (show(s n)))
+             }
+      <|> do { string "\"" 
+               ; l <- litcontent 
+               ;  string "\""
+               ; spaces
+               ; return (Literal l)
+             }
+      <|> fmap Exp ( exparser )
       <|> try (
               do {
               m_reserved "[]"
               ; l <- getState
-              --; updateState (+1)
-              ;return (Blank (show(l)))
+              ; updateState (+1)
+              ;return $ Existential $"newBlank_" ++  show(l)
              })
       <|> do { m_reserved "["
                ; t <- termparser
                ; o <- objectparser
                ; m_reserved "]" 
-               ; return (BlankConstruct t o)
+               ; l <- getState
+               ; updateState (+1)
+               ; return (BlankConstruct  (Existential $"newBlank_" ++  show(l)) t o)
           }
       <|> do {m_reserved "("
              ; p <- termlist
              ; m_reserved ")"
-             ; return (List2 p )
+             ; return ( p )
              } 
       
-termlist = do {
+             
+             
+             
+      
+termlist =  do {
               t <-termparser
+              ; spaces
               ; l <-termlist
-              ; return ( [t]++l )
+              ; return ( List t l )
               }
+
           <|> do {
-              return ([])
+              return (EmptyList)
               }
 
 
            
 
 
-exparser :: Parser Expression
+exparser :: Parsec [Char] Int Expression
 exparser = (m_reserved "false" >> return (BE False))
-          <|> (m_reserved "{}" >> return (BE True ))
-          <|> do {m_reserved "{"
+          <|> try (string "true" >> spaces >> return (BE True))
+          <|> try(m_reserved "{" >> m_reserved "}"  >> return (BE True ))
+          <|> try (do {m_reserved "{"
                   ;f <- formulaparser
                   ; optional (m_reserved ".")
                   ; m_reserved "}"
                   ; return (FE f)
-                  }
+                  })
               
 
 
-mainparser :: Parser S
+mainparser :: Parsec [Char] Int S
 mainparser = mparser <* eof 
-            where mparser :: Parser S
-                  mparser = do {
-
-                               f <- formulaparser
+            where mparser :: Parsec [Char] Int S
+                  mparser = try (do {
+                               skipMany begin
+                               ;f <- formulaparser
                                ;m_reserved "."
-                               ; return (Mainformula (cleanUp f "blank"))
-                               
-                               }
-   
+                               ; return (Mainformula f)                             
+                               })
+ 
+{-  
 parseN3 :: String -> IO ()
 parseN3 inp = case parse mainparser "" inp of
               { Left err -> print err
               ; Right ans -> print  ans 
               }
+-}
 
------------some tests
-
-termparser2 = fmap URI (char ':' >> m_identifier)
-      <|> fmap Universal (char '?' >> m_identifier)
-      <|> fmap Existential (char '_' >> char ':' >> m_identifier)
-      <|> fmap Literal ( m_identifier)
-      <|> try (
-              do {
-              m_reserved "[]"
-              ; l <- getState
-              ; updateState (+1)
-              ;return (Blank (show(l)))
-             })
+begin = try (do space )
+        <|> try ( do {
+                     char '#'
+                     ; line
+                     ; newline
+                     })
+        <|> try (do prefix)
 
 
 
-mainparser2 :: Parsec [Char] Int Term
-mainparser2 = mparser2 <* eof 
-            where mparser2 :: Parsec [Char] Int Term
-                  mparser2 = do {
-                               --Question: How do I set the initial state to 0?
-                               ---putState 0
-                               f <- termparser2
-                               
-                               ; return f
-                               
-                               }
-play :: String -> Either ParseError Term
-play s = runParser mainparser2 0 "parameter" s  -- 0 is the initial value
+prefix = do { string "@prefix"
+              ; line
+              ; newline 
+            }
+
+--simple constructs
+line = many $ noneOf "\n"
+litcontent = many $ noneOf "\""
 
 
-------------------------------------------
+
+
+
+parseN3 :: String -> Either ParseError S
+parseN3 s = runParser mainparser 0 "parameter" s
 
 
 --TODO: this works but has to be cleaned up (you can for sure do it shorter)---
 
+triples :: Formula -> Formula
+triples (Triple s p o) =  ( \a b c -> (
+                                       conjunctions (
+                                                     convertTriple ((Triple (fst a) (fst b) (fst c))),
+                                                     ((snd a)++(snd b)++(snd c)) 
+                                                    )
+                                      ) 
+                          ) (treatList s []) (treatList p []) (treatList o [])
+triples   f = f
 
---function to get rid of blank node constructions in expressions
-cleanExp :: Expression -> String -> Expression
-cleanExp (FE f)  st = (FE (cleanUp f st ))
-cleanExp e       st = e
-
-
-cleanUp :: Formula -> String -> Formula
-cleanUp (Implication e1 e2) st = (Implication ( cleanExp e1 (st++show(1)))( cleanExp e2 (st++show(2))))
-cleanUp (Conjunction f1 f2) st = (Conjunction ( cleanUp  f1 (st++show(1)))( cleanUp  f2 (st++show(2))))
-
---TODO Handle this s-> p ->o pattern via an extra funtion
-cleanUp (Triple (Blank "blank") p o ) st = cleanUp (Triple ( Existential (st++show(1))) p o) (st++show(1))   
-cleanUp (Triple s (Blank "blank") o ) st = cleanUp (Triple  s (Existential (st++show(2))) o) (st++show(2)) 
-cleanUp (Triple s p (Blank "blank") ) st = cleanUp (Triple  s p (Existential (st++show(3)))) (st++show(3)) 
-
-cleanUp (Triple (Exp2 e) p o )        st  = cleanUp (Triple ( Exp (cleanExp e (st++show(1)))) p o) (st++show(1)) 
-cleanUp (Triple s (Exp2 e) o )        st  = cleanUp (Triple  s (Exp (cleanExp e (st++show(2)))) o) (st++show(2))
-cleanUp (Triple s p (Exp2 e) )        st  = cleanUp (Triple  s p (Exp (cleanExp e (st++show(3))))) (st++show(3))
-
-
-
-cleanUp (Triple (List2 e) p o )        st  = cleanUp 
-                                              (conjunctions ( (\x -> ((Triple (fst x) p o), (snd x)  ) )(blankInList (List2 e) [][] st 1 ) )) 
-                                              st 
-cleanUp (Triple s (List2 e) o )        st  = cleanUp 
-                                              (conjunctions ( (\x -> ((Triple s (fst x) o), (snd x)  ) )(blankInList (List2 e) [][] st 1 ) )) 
-                                              st 
-cleanUp (Triple s p (List2 e) )        st  = cleanUp 
-                                              (conjunctions ( (\x -> ((Triple s p (fst x)), (snd x)  ) )(blankInList (List2 e) [][] st 1 ) )) 
-                                              st 
-
-
-
-cleanUp (Triple (BlankConstruct a b) p o) st = (\x 
-                                                -> 
-                                               (cleanUp (Conjunction (Triple (Existential x) p o) (Triple (Existential x) a b)) x ))
-                                               (st++show(1))
-cleanUp (Triple s (BlankConstruct a b) o) st = (\x 
-                                               -> 
-                                               (cleanUp (Conjunction (Triple s (Existential x) o) (Triple (Existential x) a b)) x ))
-                                               (st++show(2))
-cleanUp (Triple s p (BlankConstruct a b)) st = (\x 
-                                               ->
-                                               (cleanUp (Conjunction (Triple s p (Existential x)) (Triple (Existential x) a b)) x ))
-                                               (st++show(3))
-
-cleanUp (Triple s p (Objectlist o list) ) st          = cleanUp (Conjunction (Triple s p o) (Triple s p list)) st
-cleanUp (Triple s p (PredicateObjectList o p2 o2)) st = cleanUp (Conjunction (Triple s p o) (Triple s p2 o2))  st 
-
-cleanUp f st = f
+treatList :: Term -> [Formula] -> (Term, [Formula])
+treatList (List (BlankConstruct e a b) l) f = (\x -> ((List e (fst x)), snd x))(treatList l ((Triple e a b):f))
+treatList (List e l) f = (\x -> ((List e (fst x)), snd x))(treatList l f)
+treatList t l = (t, l)
 
 
 
 
+convertTriple :: Formula -> Formula
 
-blankInList :: Term -> [Term] -> [Formula] -> String -> Int -> (Term, [Formula])
-blankInList (List2 [])                     l l2 st n    = ((List (reverse l)), l2)
-blankInList (List2 ((Blank "blank"):rest)) l l2 st n    = blankInList (List2 rest) ((Existential (st++"_"++show(n))):l) l2 st (n+1)
-blankInList (List2 ((BlankConstruct a b):rest)) l l2 st n = blankInList (List2 rest) ((Existential (st++"_"++show(n))):l) 
-                                                                      ((Triple (Existential (st++"_"++show(n))) a b):l2) st (n+1)
-blankInList (List2 (s:rest))               l l2 st n    = blankInList (List2 rest) (s:l) l2 st n
-blankInList t                              l l2 st n    = (t, l2) 
+convertTriple (Triple (BlankConstruct e a b) p o) = Conjunction  (convertTriple (Triple e a b)) (convertTriple(Triple e p o))
+convertTriple (Triple s (BlankConstruct e a b) o) = Conjunction  (convertTriple (Triple e a b)) (convertTriple(Triple s e o))
+convertTriple (Triple s p (BlankConstruct e a b)) = Conjunction  (convertTriple (Triple e a b)) (convertTriple(Triple s p e))
+
+convertTriple (Triple s p (Objectlist o list)) = Conjunction (convertTriple (Triple s p o)) (convertTriple (Triple s p list))
+convertTriple (Triple s p (PredicateObjectList o p2 o2))= Conjunction (convertTriple (Triple s p o)) (convertTriple (Triple s p2 o2))
+
+convertTriple (Triple s p o) = (Triple s p o)
+
+
 
 
 
 conjunctions :: (Formula, [Formula]) -> Formula
 conjunctions (f, []) = f
-conjunctions (f,  (f1:l)) = conjunctions ((Conjunction f f1), l)
+conjunctions (f,  (f1:l)) = conjunctions ((Conjunction f (convertTriple f1)), l)
 
 
 
-
+parseFF p fname
+                = do{ input <- readFile fname
+                      ; return (runParser p 0 fname input)
+                     }
 
 
 
