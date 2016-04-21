@@ -48,6 +48,7 @@ TokenParser{ identifier = m_identifier
            , reservedOp = m_reservedOp
            , reserved = m_reserved 
            , whiteSpace = m_space
+           , lexeme = m_lex
            } = makeTokenParser def
 
 
@@ -76,7 +77,7 @@ simpleformula =  try (do {
                      ; m_reserved "=>"
                      ; e2 <- exparser
                      ; return (Implication e1 e2)})
-                <|> try (do {
+                <|> (do {
                      e1 <- exparser
                      ; m_reserved "<="
                      ; e2 <- exparser
@@ -104,29 +105,31 @@ objectparser = try (do{ o <-termparser
                  
 termparser = fmap Existential (char '_' >> char ':' >> blank_node)
        <|> try (do {
-                   char 'a'
-                   ; space
-                   ; m_space
+                   m_lex $char 'a'
+                   -- ; space
+                   -- ; m_space
                    ; return (URI "rdf_type")
                    })           
-       <|>     try (do { 
+{-       <|>     try (do { 
                      pre <- m_identifier
                      ; char ':'
                      ; name <- uristring
                      ; m_space
                      ; return (URI (pre++"_"++name))
                      }
-                 )
+                 ) -}
 
-      <|> fmap Universal (char '?' >> m_identifier)
---URIs
        <|> try (fmap URI ( iriref)) 
        <|> try (do {
               pr <- pname_ns
               ; pos <- pn_local
               ; m_space
               ; return (URI (pr++pos))
-              } )   
+              } )           
+          
+--m_identifier is not correct here
+      <|> fmap Universal (char '?' >> m_identifier)
+ 
 --literals      
       <|> try (do {
              n <- int
@@ -401,11 +404,11 @@ iriref = try (do {
             })
             
 pname_ns :: Parsec [Char] Int String 
-pname_ns = try (do {
+pname_ns = do {
               a <- option [] pn_prefix
               ; char ':'
               ; return (a++":")
-              })
+              }
 
 pname_ln :: Parsec [Char] Int String
 pname_ln = do {
@@ -416,7 +419,7 @@ pname_ln = do {
 
 --remark: slightly different then in the original grammar, we won't keep the "_:"
 blank_node = do {
-                      a <- oneOf $ pn_chars_u++['0' .. '9']
+                      a <- alphaNum <|> char '_'    -- oneOf $ pn_chars_u++['0' .. '9']
                       ; b <- option [] p_end
                       ; m_space
                       ; return (a:b)
@@ -466,7 +469,7 @@ echar = do {
            }           
 pn_prefix :: Parsec [Char] Int String
 pn_prefix = try (do {
-                    first <- oneOf pn_chars_base
+                    first <- letter --oneOf pn_chars_base
                     ; second <-  (option [] p_end)
                     ; return (first:second)
                     } 
@@ -475,19 +478,19 @@ pn_prefix = try (do {
 p_end :: Parsec [Char] Int String
 p_end = 
         try (do { 
-                 a <- oneOf (pn_chars++".")
+                 a <-  (alphaNum <|>  oneOf ".-_") --oneOf (pn_chars++".")
                  ; b <- p_end
                  ; return ([a]++b)
                  })
         <|> try (do {            
-            ;b <- (oneOf pn_chars)
+            ;b <- (alphaNum <|>  oneOf "-_") -- (oneOf pn_chars)
             ; return [b] 
            })
 
 
 pn_local :: Parsec [Char] Int String
 pn_local = try (do {
-              a <-  ( (convertToString (oneOf (pn_chars_u++['1' .. '9']++":"))) <|> plx ) 
+              a <-  ( (convertToString (alphaNum <|> oneOf "_:")) <|> plx )   --(oneOf (pn_chars_u++['1' .. '9']++":"))) <|> plx ) 
               ; b <- option [] pl_end
               ; m_space
               ; return $ a++b
@@ -519,7 +522,19 @@ plx = try ( do {
                    ; return ['\\',a]
                   })
 
+
+
+-- Match the lowercase or uppercase form of 'c'
+caseInsensitiveChar c = char (toLower c) <|> char (toUpper c)
+
+-- Match the string 's', accepting either lowercase or uppercase form of each character 
+caseInsensitiveString s = try (mapM caseInsensitiveChar s) <?> "\"" ++ s ++ "\""
+
+
+
+
 --string sets as specified in the official grammar
+-- This is too expensive to use, I use letter instead, characters from \x02e5 on can be a problem
 pn_chars_base = ['a' .. 'z']++['A' .. 'Z']++['\x00C0' .. '\x00D6']++ ['\x00D8' .. '\x00F6'] ++ ['\x00F8' .. '\x02FF'] ++ ['\x0370' .. '\x037D'] 
                         ++ ['\x037F' ..'\x1FFF'] ++ ['\x200C' .. '\x200D' ] ++ ['\x2070' .. '\x218F'] ++ ['\x2C00' .. '\x2FEF'] ++ ['\x3001' .. '\xD7FF'] ++ ['\xF900' .. '\xFDCF'] 
                         ++ ['\xFDF0' .. '\xFFFD'] ++ ['\x10000' .. '\xEFFFF']
@@ -528,9 +543,5 @@ pn_chars_u = '_':pn_chars_base
 
 pn_chars = pn_chars_u ++ "-"++['0'.. '9'] ++ "\x00B7"++['\x0300' .. '\x036F'] ++ ['\x203F' .. '\x2040']
 
--- Match the lowercase or uppercase form of 'c'
-caseInsensitiveChar c = char (toLower c) <|> char (toUpper c)
 
--- Match the string 's', accepting either lowercase or uppercase form of each character 
-caseInsensitiveString s = try (mapM caseInsensitiveChar s) <?> "\"" ++ s ++ "\""
 
