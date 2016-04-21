@@ -122,7 +122,8 @@ termparser = fmap Existential (char '_' >> char ':' >> blank_node)
        <|> try (do {
               pr <- pname_ns
               ; pos <- pn_local
-              ; return (URI (pr++":"++pos))
+              ; spaces
+              ; return (URI (pr++pos))
               } )   
 --literals      
       <|> try (do {
@@ -138,7 +139,8 @@ termparser = fmap Existential (char '_' >> char ':' >> blank_node)
              })
       <|> try (do { 
                 l <- litcontent
-               ; o <- option [] (langtag <|>  (spaces >> string "^^">> iriref))
+               ; spaces
+               ; o <- option [] (langtag <|>  ( string "^^">> iriref))
                ; spaces
                ; return (Literal $l++"_"++o)
              })
@@ -235,6 +237,7 @@ begin = try (do space )
 prefix = try (do { string "@prefix"
               ; spaces
               ; pname_ns
+              ; spaces
               ; iriref
               ; char '.'
               ; spaces 
@@ -244,12 +247,14 @@ prefix = try (do { string "@prefix"
               caseInsensitiveString "prefix"
               ; spaces
               ; pname_ns
+              ; spaces
               ; iriref
               ; return 'l'
               })   
 
 base = try (do {
            string "@base"
+           ; spaces
            ; iriref
            ; char '.'
            ; spaces
@@ -257,6 +262,7 @@ base = try (do {
            })
        <|> try (do {
            caseInsensitiveString "base"
+           ; spaces
            ; iriref
            ; return 'l'
            })
@@ -381,48 +387,11 @@ uristring = try (do {
                      })
             <|> try (do {st <- many urisym
                     ; return st }) 
-{-
-[139s] 	PNAME_NS 	::= 	PN_PREFIX? ':'
-[140s] 	PNAME_LN 	::= 	PNAME_NS PN_LOCAL
-[141s] 	BLANK_NODE_LABEL 	::= 	'_:' (PN_CHARS_U | [0-9]) ((PN_CHARS | '.')* PN_CHARS)?
-[144s] 	LANGTAG 	::= 	'@' [a-zA-Z]+ ('-' [a-zA-Z0-9]+)*
-[19] 	INTEGER 	::= 	[+-]? [0-9]+
-[20] 	DECIMAL 	::= 	[+-]? [0-9]* '.' [0-9]+
-[21] 	DOUBLE 	::= 	[+-]? ([0-9]+ '.' [0-9]* EXPONENT | '.' [0-9]+ EXPONENT | [0-9]+ EXPONENT)
-[154s] 	EXPONENT 	::= 	[eE] [+-]? [0-9]+
-[22] 	STRING_LITERAL_QUOTE 	::= 	'"' ([^#x22#x5C#xA#xD] | ECHAR | UCHAR)* '"' /* #x22=" #x5C=\ #xA=new line #xD=carriage return */
-[23] 	STRING_LITERAL_SINGLE_QUOTE 	::= 	"'" ([^#x27#x5C#xA#xD] | ECHAR | UCHAR)* "'" /* #x27=' #x5C=\ #xA=new line #xD=carriage return */
-[24] 	STRING_LITERAL_LONG_SINGLE_QUOTE 	::= 	"'''" (("'" | "''")? ([^'\] | ECHAR | UCHAR))* "'''"
-[25] 	STRING_LITERAL_LONG_QUOTE 	::= 	'"""' (('"' | '""')? ([^"\] | ECHAR | UCHAR))* '"""'
-[26] 	UCHAR 	::= 	'\u' HEX HEX HEX HEX | '\U' HEX HEX HEX HEX HEX HEX HEX HEX
-[159s] 	ECHAR 	::= 	'\' [tbnrf"'\]
-[161s] 	WS 	::= 	#x20 | #x9 | #xD | #xA /* #x20=space #x9=character tabulation #xD=carriage return #xA=new line */
-[162s] 	ANON 	::= 	'[' WS* ']'
-
-[164s] 	PN_CHARS_U 	::= 	PN_CHARS_BASE | '_'
-[166s] 	PN_CHARS 	::= 	PN_CHARS_U | '-' | [0-9] | #x00B7 | [#x0300-#x036F] | [#x203F-#x2040]
-[167s] 	PN_PREFIX 	::= 	PN_CHARS_BASE ((PN_CHARS | '.')* PN_CHARS)?
-[168s] 	PN_LOCAL 	::= 	(PN_CHARS_U | ':' | [0-9] | PLX) ((PN_CHARS | '.' | ':' | PLX)* (PN_CHARS | ':' | PLX))?
-
-
-
-
-[163s] 	PN_CHARS_BASE 	::= 	[A-Z] | [a-z] | [#x00C0-#x00D6] | [#x00D8-#x00F6] | [#x00F8-#x02FF] | [#x0370-#x037D] | [#x037F-#x1FFF] | [#x200C-#x200D] | [#x2070-#x218F] | [#x2C00-#x2FEF] | [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD] | [#x10000-#xEFFFF]
--- I won't implement that, I just hope it is covered by alphanum bzw. letter
--}
-
-
-
-
-
-
-
 
 
 iriref :: Parsec [Char] Int String 
 iriref = try (do {
-            spaces
-            ;char '<'
+            char '<'
             ; uri <- many $ ( (noneOf  (['\x00'..'\x20'] ++ "<>\"{}|^`\\"))<|>  uchar)
             ; char '>'
             ;spaces
@@ -492,20 +461,11 @@ echar = do {
            char '\\'
            ; z <- oneOf "tbnrf\"\'\\"
            ; return ['\\', z]
-           }
-
-
-           
-
- 
-           
-
-           
-           
+           }           
 pn_prefix :: Parsec [Char] Int String
 pn_prefix = try (do {
                     first <- oneOf pn_chars_base
-                    ; second <- try (option [] p_end)
+                    ; second <-  (option [] p_end)
                     ; return (first:second)
                     } 
                 ) 
@@ -518,23 +478,31 @@ p_end =
                  ; return ([a]++b)
                  })
         <|> try (do {            
-            ;b <- try (oneOf pn_chars)
+            ;b <- (oneOf pn_chars)
             ; return [b] 
            })
 
 
-
-
-
-
-
 pn_local :: Parsec [Char] Int String
 pn_local = try (do {
-              a <- letter -- oneOf (pn_chars_u++['1' .. '9']++":") 
-              ; return [a]
+              a <-  ( (convertToString (oneOf (pn_chars_u++['1' .. '9']++":"))) <|> plx ) 
+              ; b <- option [] pl_end
+              ; spaces
+              ; return $ a++b
               })
 
+pl_end :: Parsec [Char] Int String
+pl_end = 
+        try (do { 
+                 a <- (convertToString (oneOf (pn_chars++".:")) <|> plx )
+                 ; b <- pl_end
 
+                 ; return (a++b)
+                 })
+        <|> try (do {            
+            ; b <- (convertToString (oneOf (pn_chars++":")) <|> plx )
+            ; return b 
+           })
 
 
 plx :: Parsec [Char] Int String 
@@ -548,7 +516,6 @@ plx = try ( do {
                     ; a <- oneOf "_~.-!$&'()*+,;=/?#@%"
                    ; return ['\\',a]
                   })
-
 
 --string sets as specified in the official grammar
 pn_chars_base = ['a' .. 'z']++['A' .. 'Z']++['\x00C0' .. '\x00D6']++ ['\x00D8' .. '\x00F6'] ++ ['\x00F8' .. '\x02FF'] ++ ['\x0370' .. '\x037D'] 
