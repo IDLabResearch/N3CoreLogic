@@ -47,6 +47,7 @@ def = emptyDef{ commentLine = "#"
 TokenParser{ identifier = m_identifier
            , reservedOp = m_reservedOp
            , reserved = m_reserved 
+           , whiteSpace = m_space
            } = makeTokenParser def
 
 
@@ -105,13 +106,14 @@ termparser = fmap Existential (char '_' >> char ':' >> blank_node)
        <|> try (do {
                    char 'a'
                    ; space
+                   ; m_space
                    ; return (URI "rdf_type")
                    })           
        <|>     try (do { 
                      pre <- m_identifier
                      ; char ':'
                      ; name <- uristring
-                     ; spaces
+                     ; m_space
                      ; return (URI (pre++"_"++name))
                      }
                  )
@@ -122,26 +124,26 @@ termparser = fmap Existential (char '_' >> char ':' >> blank_node)
        <|> try (do {
               pr <- pname_ns
               ; pos <- pn_local
-              ; spaces
+              ; m_space
               ; return (URI (pr++pos))
               } )   
 --literals      
       <|> try (do {
              n <- int
-             ; spaces
+             ; m_space
              ; return (Literal (show( n)))
              })
       <|> try ( do {
              s <-  sign
              ;n <- (floating3 True)
-             ; spaces
+             ; m_space
              ; return (Literal (show(s n)))
              })
       <|> try (do { 
                 l <- litcontent
-               ; spaces
+               ; m_space
                ; o <- option [] (langtag <|>  ( string "^^">> iriref))
-               ; spaces
+               ; m_space
                ; return (Literal $l++"_"++o)
              })
 
@@ -177,9 +179,9 @@ termparser = fmap Existential (char '_' >> char ':' >> blank_node)
              
       
 termlist =  do {
-               spaces
+               m_space
               ; t <-termparser
-              ; spaces
+              ; m_space
               ; l <-termlist
               ; return ( List t l )
               }
@@ -194,7 +196,7 @@ termlist =  do {
 
 exparser :: Parsec [Char] Int Expression
 exparser = (m_reserved "false" >> return (BE False))
-          <|> try (string "true" >> spaces >> return (BE True))
+          <|> try (string "true" >> m_space >> return (BE True))
           <|> try(m_reserved "{" >> m_reserved "}"  >> return (BE True ))
           <|> try (do {m_reserved "{"
                   ;f <- formulaparser
@@ -394,7 +396,7 @@ iriref = try (do {
             char '<'
             ; uri <- many $ ( (noneOf  (['\x00'..'\x20'] ++ "<>\"{}|^`\\"))<|>  uchar)
             ; char '>'
-            ;spaces
+            ; m_space
             ;return uri
             })
             
@@ -416,7 +418,7 @@ pname_ln = do {
 blank_node = do {
                       a <- oneOf $ pn_chars_u++['0' .. '9']
                       ; b <- option [] p_end
-                      ; spaces
+                      ; m_space
                       ; return (a:b)
                      }
 
@@ -487,7 +489,7 @@ pn_local :: Parsec [Char] Int String
 pn_local = try (do {
               a <-  ( (convertToString (oneOf (pn_chars_u++['1' .. '9']++":"))) <|> plx ) 
               ; b <- option [] pl_end
-              ; spaces
+              ; m_space
               ; return $ a++b
               })
 
