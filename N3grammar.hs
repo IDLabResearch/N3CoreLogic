@@ -106,7 +106,7 @@ objectparser = try (do{ o <-termparser
 termparser = fmap Existential (char '_' >> char ':' >> blank_node)
        <|> try (do {
                    m_lex $char 'a'
-                   -- ; space
+                    ; space
                    -- ; m_space
                    ; return (URI "rdf_type")
                    })           
