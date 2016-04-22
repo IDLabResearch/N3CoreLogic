@@ -38,10 +38,10 @@ data Formula = Triple Term Term Term | Conjunction Formula Formula | Implication
 --TODO separate input grammer from pure grammar then translate to core
 
 def = emptyDef{ commentLine = "#"
-              , opStart = oneOf "; ,.=><"
+              , opStart = oneOf ":;,.=><"
               , opLetter = oneOf "; ,.=><"
               , reservedOpNames = [";", "<=", ".", "=>"]
-              , reservedNames = ["\"", "<", ">", "(", ")", "[", "]", ",", ";", "{}", "{", "}", "false", "newBlank"]
+              , reservedNames = ["\"", "<", ">", "(", ")", "[", "]", ",", ";", "{}", "{", "}"]
               }
 
 TokenParser{ identifier = m_identifier
@@ -105,9 +105,9 @@ objectparser = try (do{ o <-termparser
                  
 termparser = fmap Existential (char '_' >> char ':' >> blank_node)
        <|> try (do {
-                   m_lex $char 'a'
-                    ; space
-                   -- ; m_space
+                   m_lex $ (char 'a'>> space )
+                   -- ; space
+                   --; m_space
                    ; return (URI "rdf_type")
                    })           
 {-       <|>     try (do { 
@@ -198,9 +198,9 @@ termlist =  do {
 
 
 exparser :: Parsec [Char] Int Expression
-exparser = (m_reserved "false" >> return (BE False))
-          <|> try (string "true" >> m_space >> return (BE True))
-          <|> try(m_reserved "{" >> m_reserved "}"  >> return (BE True ))
+exparser = (m_lex $ string "false" >> return (BE False))
+          <|> (m_lex $ string "true"  >> return (BE True))
+          <|> try (m_reserved "{" >> m_reserved "}"  >> return (BE True ))
           <|> try (do {m_reserved "{"
                   ;f <- formulaparser
                   ; optional (m_reserved ".")
@@ -373,27 +373,6 @@ convertToString a = do { res <- a
                          }
 
 
-
-
-
-urisym = do ( alphaNum )
-      -- <|> do ( plx) --escaped chars
-        <|> do (oneOf "_:")
-        
-uriStringB = do (many $  (urisym  <|> char '.'))
-
-
-uristring :: Parsec [Char] Int String           
-uristring = try (do {
-             
-                     st <- char '\0041'   -- <- many (urisym  <|> char '.') 
-                     ; char '*'
-                     ; return  [st]
-                     })
-            <|> try (do {st <- many urisym
-                    ; return st }) 
-
-
 iriref :: Parsec [Char] Int String 
 iriref = try (do {
             char '<'
@@ -499,13 +478,13 @@ pn_local = try (do {
 pl_end :: Parsec [Char] Int String
 pl_end = 
         try (do { 
-                 a <- (convertToString (oneOf (pn_chars++".:")) <|> plx )
+                 a <- (convertToString (alphaNum <|> oneOf "-_.:") <|> plx )
                  ; b <- pl_end
 
                  ; return (a++b)
                  })
         <|> try (do {            
-            ; b <- (convertToString (oneOf (pn_chars++":")) <|> plx )
+            ; b <- (convertToString (alphaNum <|> oneOf "-_:") <|> plx )
             ; return b 
            })
 
@@ -532,7 +511,7 @@ caseInsensitiveString s = try (mapM caseInsensitiveChar s) <?> "\"" ++ s ++ "\""
 
 
 
-
+{-
 --string sets as specified in the official grammar
 -- This is too expensive to use, I use letter instead, characters from \x02e5 on can be a problem
 pn_chars_base = ['a' .. 'z']++['A' .. 'Z']++['\x00C0' .. '\x00D6']++ ['\x00D8' .. '\x00F6'] ++ ['\x00F8' .. '\x02FF'] ++ ['\x0370' .. '\x037D'] 
@@ -543,5 +522,5 @@ pn_chars_u = '_':pn_chars_base
 
 pn_chars = pn_chars_u ++ "-"++['0'.. '9'] ++ "\x00B7"++['\x0300' .. '\x036F'] ++ ['\x203F' .. '\x2040']
 
-
+-}
 
