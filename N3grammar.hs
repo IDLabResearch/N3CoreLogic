@@ -35,10 +35,15 @@ data Term =  URI String
 data Expression = FE Formula | BE Bool deriving Show
 data Formula = Triple Term Term Term | Conjunction Formula Formula | Implication Expression Expression deriving Show 
 
+--TODO ignore :a.
+
+
 --TODO separate input grammer from pure grammar then translate to core
+--TODO I don't like the empty non-triples. maybe I can put that out again?
+--TODO path-notation ^ and !
 
 def = emptyDef{ commentLine = "#"
-              , opStart = oneOf ":;,.=><"
+              , opStart = oneOf "_:;,.=><"
               , opLetter = oneOf "; ,.=><"
               , reservedOpNames = [";", "<=", ".", "=>"]
               , reservedNames = ["\"", "<", ">", "(", ")", "[", "]", ",", ";", "{}", "{", "}"]
@@ -54,14 +59,19 @@ TokenParser{ identifier = m_identifier
 
 formulaparser :: Parsec [Char] Int Formula
 formulaparser = try (do {
+                     -- skipMany $ dotConstr
                       f1 <- simpleformula
-                      ; skipMany $ m_reserved ";"
+                      ; skipMany $ m_reserved ";" 
                       ; m_reserved "."
-                      ;f2 <- formulaparser
+                     -- ; skipMany $ try (dotConstr)
+                      ; f2 <- formulaparser
                       ; return (Conjunction f1 f2)
                      })
-                   <|>  do {f <- simpleformula
+                   <|>  do {
+                        -- skipMany $ dotConstr
+                         f <- simpleformula
                          ; skipMany $ m_reserved ";"
+                      --   ; skipMany $ try (dotConstr)
                          ; return f}
                     
                 
@@ -77,12 +87,32 @@ simpleformula =  try (do {
                      ; m_reserved "=>"
                      ; e2 <- exparser
                      ; return (Implication e1 e2)})
-                <|> (do {
+                <|>  try (do {
                      e1 <- exparser
                      ; m_reserved "<="
                      ; e2 <- exparser
                      ; return (Implication e2 e1 )   
                      })
+                --this case occurs but I am still not sure how to handle it
+                   <|> try(do {
+                     t1 <- termparser
+                     ; m_reserved "=>"
+                     ; t2 <- termparser
+                     ; return (triples (Triple t1 (URI "http://www.w3.org/2000/10/swap/log#implies") t2))})
+                
+                
+                
+                     
+dotConstr =   try (
+                     do {
+                     m_reserved "."
+                     ; e <- termparser
+                     ; m_space
+                     ;return []
+                     }
+                     )
+                     
+                     
 
 
 
@@ -103,32 +133,27 @@ objectparser = try (do{ o <-termparser
                     
 
                  
-termparser = fmap Existential (char '_' >> char ':' >> blank_node)
+termparser = fmap Existential (string "_:" >> blank_node)
        <|> try (do {
                    m_lex $ (char 'a'>> space )
-                   -- ; space
-                   --; m_space
-                   ; return (URI "rdf_type")
-                   })           
-{-       <|>     try (do { 
-                     pre <- m_identifier
-                     ; char ':'
-                     ; name <- uristring
-                     ; m_space
-                     ; return (URI (pre++"_"++name))
-                     }
-                 ) -}
+                   ; return (URI "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+                   })    
+       <|> try (do {
+                   m_reserved "=" 
+                   ; return (URI "http://www.w3.org/2002/07/owl#sameAs")
+                   })         
+
 
        <|> try (fmap URI ( iriref)) 
        <|> try (do {
               pr <- pname_ns
-              ; pos <- pn_local
+              ; pos <- option [] pn_local
               ; m_space
               ; return (URI (pr++pos))
               } )           
           
---m_identifier is not correct here
-      <|> fmap Universal (char '?' >> m_identifier)
+
+      <|> fmap Universal (char '?' >> (m_lex ( pn_prefix ) ))
  
 --literals      
       <|> try (do {
@@ -163,15 +188,18 @@ termparser = fmap Existential (char '_' >> char ':' >> blank_node)
               ; updateState (+1)
               ;return $ Existential $".b_" ++  show(l)
              })
-      <|> do { m_reserved "["
+      <|> do { string "["
+               ; m_space
                ; t <- termparser
                ; o <- objectparser
-               ; m_reserved "]" 
+               ; string "]"
+               ; m_space 
                ; l <- getState
                ; updateState (+1)
                ; return (BlankConstruct  (Existential $".b_" ++  show(l)) t o)
           }
-      <|> do {m_reserved "("
+      <|> do {string "("
+               ; m_space
                ; p <- termlist
                ; m_reserved ")"
                ; return ( p )
@@ -201,7 +229,8 @@ exparser :: Parsec [Char] Int Expression
 exparser = (m_lex $ string "false" >> return (BE False))
           <|> (m_lex $ string "true"  >> return (BE True))
           <|> try (m_reserved "{" >> m_reserved "}"  >> return (BE True ))
-          <|> try (do {m_reserved "{"
+          <|> try (do {string "{"
+                  ; m_space
                   ;f <- formulaparser
                   ; optional (m_reserved ".")
                   ; m_reserved "}"
@@ -217,6 +246,7 @@ mainparser = mparser <* eof
                                skipMany begin
                                ;f <- formulaparser
                                ;m_reserved "."
+                              -- ; skipMany $ dotConstr
                                ; return (Mainformula f)                             
                                })
  
@@ -228,49 +258,53 @@ parseN3 inp = case parse mainparser "" inp of
               }
 -}
 
-begin = try (do space )
+begin = try (do space ; return [] )
         <|> try ( do {
                      char '#'
                      ; line
                      ; newline
+                     ; return []
                      })
         <|> try (do prefix)
          <|> try (do base)
+         <|> try (do termparser; char '.'; return [])
+
 
 
 -- currently just used to accept prefixes, later I also want to deal with them
 prefix = try (do { string "@prefix"
               ; spaces
-              ; pname_ns
+              ; a <- pname_ns
               ; spaces
-              ; iriref
+              ; b <- iriref
               ; char '.'
               ; spaces 
-              ; return 'l'
+              ; return $ a++b
             })
       <|> try(do {
               caseInsensitiveString "prefix"
               ; spaces
-              ; pname_ns
+              ; a <- pname_ns
               ; spaces
-              ; iriref
-              ; return 'l'
+              ; b <- iriref
+              ; return $ a++b
               })   
 
 base = try (do {
            string "@base"
            ; spaces
-           ; iriref
+           ; a <- iriref
            ; char '.'
            ; spaces
-           ; return 'l'
+           ; return a
            })
        <|> try (do {
            caseInsensitiveString "base"
            ; spaces
-           ; iriref
-           ; return 'l'
+           ; b <- iriref
+           ; return b
            })
+
 
 
 
@@ -280,44 +314,7 @@ parseN3 s = runParser mainparser 0 "parameter" s
 
 
 
---TODO: this works but has to be cleaned up (you can for sure do it shorter)---
 
-triples :: Formula -> Formula
-triples (Triple s p o) =  ( \a b c -> (
-                                       conjunctions (
-                                                     convertTriple ((Triple (fst a) (fst b) (fst c))),
-                                                     ((snd a)++(snd b)++(snd c)) 
-                                                    )
-                                      ) 
-                          ) (treatList s []) (treatList p []) (treatList o [])
-triples   f = f
-
-treatList :: Term -> [Formula] -> (Term, [Formula])
-treatList (List (BlankConstruct e a b) l) f = (\x -> ((List e (fst x)), snd x))(treatList l ((Triple e a b):f))
-treatList (List e l) f = (\x -> ((List e (fst x)), snd x))(treatList l f)
-treatList t l = (t, l)
-
-
-
-
-convertTriple :: Formula -> Formula
-
-convertTriple (Triple (BlankConstruct e a b) p o) = Conjunction  (convertTriple (Triple e a b)) (convertTriple(Triple e p o))
-convertTriple (Triple s (BlankConstruct e a b) o) = Conjunction  (convertTriple (Triple e a b)) (convertTriple(Triple s e o))
-convertTriple (Triple s p (BlankConstruct e a b)) = Conjunction  (convertTriple (Triple e a b)) (convertTriple(Triple s p e))
-
-convertTriple (Triple s p (Objectlist o list)) = Conjunction (convertTriple (Triple s p o)) (convertTriple (Triple s p list))
-convertTriple (Triple s p (PredicateObjectList o p2 o2))= Conjunction (convertTriple (Triple s p o)) (convertTriple (Triple s p2 o2))
-
-convertTriple (Triple s p o) = (Triple s p o)
-
-
-
-
-
-conjunctions :: (Formula, [Formula]) -> Formula
-conjunctions (f, []) = f
-conjunctions (f,  (f1:l)) = conjunctions ((Conjunction f (convertTriple f1)), l)
 
 
 
@@ -389,12 +386,15 @@ pname_ns = do {
               ; return (a++":")
               }
 
+{-
 pname_ln :: Parsec [Char] Int String
 pname_ln = do {
               a <- pname_ns
               ; b <- pn_local
               ; return (a++b)
               }
+-}
+
 
 --remark: slightly different then in the original grammar, we won't keep the "_:"
 blank_node = do {
@@ -503,11 +503,52 @@ plx = try ( do {
 
 
 
--- Match the lowercase or uppercase form of 'c'
-caseInsensitiveChar c = char (toLower c) <|> char (toUpper c)
 
--- Match the string 's', accepting either lowercase or uppercase form of each character 
+caseInsensitiveChar c = char (toLower c) <|> char (toUpper c) 
 caseInsensitiveString s = try (mapM caseInsensitiveChar s) <?> "\"" ++ s ++ "\""
+
+
+
+
+--TODO: this works but has to be cleaned up (you can for sure do it shorter)---
+
+triples :: Formula -> Formula
+triples (Triple s p o) =  ( \a b c -> (
+                                       conjunctions (
+                                                     convertTriple ((Triple (fst a) (fst b) (fst c))),
+                                                     ((snd a)++(snd b)++(snd c)) 
+                                                    )
+                                      ) 
+                          ) (treatList s []) (treatList p []) (treatList o [])
+triples   f = f
+
+treatList :: Term -> [Formula] -> (Term, [Formula])
+treatList (List (BlankConstruct e a b) l) f = (\x -> ((List e (fst x)), snd x))(treatList l ((Triple e a b):f))
+treatList (List e l) f = (\x -> ((List e (fst x)), snd x))(treatList l f)
+treatList t l = (t, l)
+
+
+
+
+convertTriple :: Formula -> Formula
+
+convertTriple (Triple (BlankConstruct e a b) p o) = Conjunction  (convertTriple (Triple e a b)) (convertTriple(Triple e p o))
+convertTriple (Triple s (BlankConstruct e a b) o) = Conjunction  (convertTriple (Triple e a b)) (convertTriple(Triple s e o))
+convertTriple (Triple s p (BlankConstruct e a b)) = Conjunction  (convertTriple (Triple e a b)) (convertTriple(Triple s p e))
+
+convertTriple (Triple s p (Objectlist o list)) = Conjunction (convertTriple (Triple s p o)) (convertTriple (Triple s p list))
+convertTriple (Triple s p (PredicateObjectList o p2 o2))= Conjunction (convertTriple (Triple s p o)) (convertTriple (Triple s p2 o2))
+
+convertTriple (Triple s p o) = (Triple s p o)
+
+
+
+
+
+conjunctions :: (Formula, [Formula]) -> Formula
+conjunctions (f, []) = f
+conjunctions (f,  (f1:l)) = conjunctions ((Conjunction f (convertTriple f1)), l)
+
 
 
 
