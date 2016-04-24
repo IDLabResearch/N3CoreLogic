@@ -348,6 +348,39 @@ makeTree fname "cwm" = do {
                 }
 
 
+--really primitive function to compare tree strings, later that comparison should be on tree level
+compareTree :: String -> String -> String
+compareTree (x:b) (y:c)  
+           | (x==y) = compareTree b c
+           | otherwise = "Difference \n CWM:  " ++ (take 100 (x:b)) ++ "... \n and \n EYE:  " ++ (take 100 (y:c))++ "..."
+compareTree [][] = "no differences found"
+
+compareB :: String -> IO()
+compareB fname = do {
+               input <- readFile fname
+               ; case runParser mainparser 0 fname input of
+                        { 
+                          Left err -> print err
+                          ; Right ans -> putStrLn $  compareTree (show (  transformed_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )) 
+                                                              (show (  eye_Syn_S         (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  ))
+                        }
+               }
+
+
+
+
+
+--data TreeElem = CFormula | CTerm
+
+-- function to compare trees
+--compareTrees :: TreeElem -> TreeElem -> [(TreeElem, TreeElem)]
+--compareTrees (CFormula rest)(CFormula rest2) = compareTrees rest rest2
+--compareTrees (CTriple t1 t2 t3)(CTriple t11 t22 t33) = (compareTrees t1 t11)++(compareTrees t2 t22)++(compareTrees t3 t33)
+--compareTrees a b = [(a,b)]
+
+--compareTrees (Var x) (Var y) 
+--            | (x == y) = []
+--            | otherwise = [(x,y)]
 
 
 
