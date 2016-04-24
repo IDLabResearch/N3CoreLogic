@@ -81,6 +81,8 @@ attr S
    syn eye :: CFormula
    syn eyeVar :: {[String]}
    syn eyeEx :: {[String]}
+--like team submission but universal different
+   syn diff :: CFormula   
    
 
 attr Formula
@@ -96,7 +98,8 @@ attr Formula
    syn eye :: CFormula
    syn eyeVar :: {[String]}
    syn eyeEx :: {[String]}
-
+--like team submission but universal different
+   syn diff :: CFormula 
 
 attr Term
 --Attributes for standard--
@@ -110,6 +113,8 @@ attr Term
    syn eye :: CTerm
    syn eyeVar :: {[String]}
    syn eyeEx :: {[String]}
+--like team submission but universal different
+   syn diff :: CTerm
 
 attr Expression
 --Attributes for standard--
@@ -122,6 +127,8 @@ attr Expression
    syn eyeVar :: {[String]}
    syn eyeEx :: {[String]}
    inh partOfImp :: Bool
+--like team submission but universal different
+   syn diff :: CExpression  
 
 
 --Definition   
@@ -135,6 +142,7 @@ sem S
                  lhs.formula = quaf  (@f.n1  `union` @f.n2) @f.ex   @f.formula
                  lhs.eye = qua @f.eyeVar @f.eyeEx @f.eye
                  lhs.eyeEx = @f.eyeEx
+                 lhs.diff = qua @f.eyeVar @f.ex @f.diff
   
 sem Formula
    | Triple lhs.n2 = (@s.n2 `union` @p.n2) `union` @o.n2
@@ -145,7 +153,7 @@ sem Formula
             lhs.eye = CTriple @s.eye @p.eye @o.eye  
             lhs.eyeVar = (@s.eyeVar `union` @p.eyeVar) `union` @o.eyeVar 
             lhs.eyeEx = (@s.eyeEx `union` @p.eyeEx) `union` @o.eyeEx 
-             
+            lhs.diff = CTriple @s.diff @p.diff @o.diff 
  
                
    | Implication lhs.n2 = []
@@ -158,6 +166,7 @@ sem Formula
                  lhs.eyeEx = []
                  e1.partOfImp = True
                  e2.partOfImp = True
+                 lhs.diff = CImplication @e1.diff @e2.diff
 
    | Conjunction lhs.n2 = @c1.n2 `union` @c2.n2
                  lhs.n1 = @c1.n1 `union` @c2.n1
@@ -169,6 +178,7 @@ sem Formula
                  lhs.eye = CConjunction @c1.eye @c2.eye
                  lhs.eyeVar = @c1.eyeVar `union` @c2.eyeVar
                  lhs.eyeEx = @c1.eyeEx `union` @c2.eyeEx
+                 lhs.diff = CConjunction @c1.diff @c2.diff
 
                  
 sem Term
@@ -180,6 +190,7 @@ sem Term
                lhs.eyeVar = ["U" ++ @u]
                lhs.eye = Var  ("U"++ @u)
                lhs.eyeEx = [] 
+               lhs.diff = Var  ("U"++ @u) 
 
    | Existential lhs.n2 = []
                 lhs.n1 = []
@@ -189,6 +200,7 @@ sem Term
                 lhs.eyeVar = []
                 lhs.eye = Var ("E"++ @ex)
                 lhs.eyeEx = ["E"++ @ex]
+                lhs.diff = Var ("E"++ @ex)
 
    | URI lhs.n2 = []
               lhs.n1 = []
@@ -198,6 +210,7 @@ sem Term
               lhs.eyeVar = []
               lhs.eye = Con ("uri_" ++ @uri)
               lhs.eyeEx = []
+              lhs.diff = Con ("uri_" ++ @uri)
 
 
    | Literal lhs.n2 = []
@@ -208,6 +221,7 @@ sem Term
               lhs.eyeVar = []
               lhs.eye = Con ("l_"++ @l)
               lhs.eyeEx = []
+              lhs.diff = Con ("l_"++ @l)
     
    | Exp  lhs.n2 = []
           lhs.n1 = @e.n1
@@ -217,6 +231,7 @@ sem Term
           lhs.eye = CExp @e.eye
           lhs.eyeEx= @e.eyeEx
           e.partOfImp = False
+          lhs.diff = CExp @e.diff
            
 --TODO how to get the transformed values of the elements?
    |List  lhs.n2 = @term.n2 ++ @list.n2
@@ -228,7 +243,7 @@ sem Term
           lhs.eyeVar = @term.eyeVar ++ @list.eyeVar
           lhs.eye = CList @term.transformed @list.transformed
           lhs.eyeEx = @term.eyeEx ++ @list.eyeEx
-                
+          lhs.diff = CList @term.diff @list.diff      
            
                 
                 
@@ -241,6 +256,7 @@ sem Expression
           lhs.eyeVar = []
           lhs.eye = CBE @b
           lhs.eyeEx = []
+          lhs.diff = CBE @b
 
    | FE   lhs.n1 = @f.n2
           f.scope = @lhs.scope `union` @f.n1 
@@ -249,6 +265,8 @@ sem Expression
           f.uni = @f.n1 \\ @lhs.scope
           lhs.eye = CFE (qua [] (imp @lhs.partOfImp @f.eyeEx) @f.eye )
           lhs.eyeEx = @f.eyeEx
+          lhs.diff = CFE (qua [] @f.ex @f.diff)
+          
 
 
 
@@ -346,14 +364,22 @@ makeTree fname "cwm" = do {
                 ; Right ans -> putStrLn $ printTree  (show  (  transformed_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )) 0
                 }
                 }
+makeTree fname "uni" = do {
+                input <- readFile fname
+                ; case runParser mainparser 0 fname input of
+                { Left err -> print err
+                ; Right ans -> putStrLn $ printTree  (show  (  diff_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )) 0
+                }
+                }
 
 
 --really primitive function to compare tree strings, later that comparison should be on tree level
-compareTree :: String -> String -> String
-compareTree (x:b) (y:c)  
-           | (x==y) = compareTree b c
-           | otherwise = "Difference \n CWM:  " ++ (take 100 (x:b)) ++ "... \n and \n EYE:  " ++ (take 100 (y:c))++ "..."
-compareTree [][] = "no differences found"
+compareTree :: String -> String -> String -> Int -> String
+compareTree (x:b) (y:c) s n 
+           | (x==y) = compareTree b c (s++[x]) (n+1)
+           | otherwise = "Difference at pos. "++ show(n)  ++ "\n" ++ s ++
+                               "\n CWM:  " ++ (take 100 (x:b)) ++ "... \n and \n Other:  " ++ (take 100 (y:c))++ "..."
+compareTree [][] s n = "no differences found"
 
 compareB :: String -> IO()
 compareB fname = do {
@@ -363,10 +389,23 @@ compareB fname = do {
                           Left err -> print err
                           ; Right ans -> putStrLn $  compareTree (show (  transformed_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )) 
                                                               (show (  eye_Syn_S         (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  ))
+                                                              []
+                                                              0
                         }
                }
 
-
+compareU :: String -> IO()
+compareU fname = do {
+               input <- readFile fname
+               ; case runParser mainparser 0 fname input of
+                        { 
+                          Left err -> print err
+                          ; Right ans -> putStrLn $  compareTree (show (  transformed_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )) 
+                                                              (show (  diff_Syn_S         (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  ))
+                                                              []
+                                                              0
+                        }
+               }
 
 
 
