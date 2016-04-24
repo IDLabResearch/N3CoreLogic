@@ -2,6 +2,7 @@ module N3grammar
 (
 mainparser
 , parseN3
+, parseFF
 --, Formula
 --, Term
 )where
@@ -30,7 +31,6 @@ data Term =  URI String
            | BlankConstruct Term Term Term 
 --TODO I did not find out how the attribute grammar can work on lists, if that is solved I would prefer to use haskell lists here
            | List Term Term
-           | EmptyList
            deriving Show 
 data Expression = FE Formula | BE Bool deriving Show
 data Formula = Triple Term Term Term | Conjunction Formula Formula | Implication Expression Expression deriving Show 
@@ -59,20 +59,17 @@ TokenParser{ identifier = m_identifier
 
 formulaparser :: Parsec [Char] Int Formula
 formulaparser = try (do {
-                     -- skipMany $ dotConstr
                       f1 <- simpleformula
                       ; skipMany $ m_reserved ";" 
                       ; m_reserved "."
-                     -- ; skipMany $ try (dotConstr)
                       ; f2 <- formulaparser
                       ; return (Conjunction f1 f2)
                      })
-                   <|>  do {
-                        -- skipMany $ dotConstr
+                <|> do {
                          f <- simpleformula
                          ; skipMany $ m_reserved ";"
-                      --   ; skipMany $ try (dotConstr)
                          ; return f}
+
                     
                 
 
@@ -99,18 +96,10 @@ simpleformula =  try (do {
                      ; m_reserved "=>"
                      ; t2 <- termparser
                      ; return (triples (Triple t1 (URI "http://www.w3.org/2000/10/swap/log#implies") t2))})
+
                 
                 
-                
-                     
-dotConstr =   try (
-                     do {
-                     m_reserved "."
-                     ; e <- termparser
-                     ; m_space
-                     ;return []
-                     }
-                     )
+
                      
                      
 
@@ -198,37 +187,37 @@ termparser = fmap Existential (string "_:" >> blank_node)
                ; updateState (+1)
                ; return (BlankConstruct  (Existential $".b_" ++  show(l)) t o)
           }
-      <|> do {string "("
+      <|> try ( do {string "("
                ; m_space
                ; p <- termlist
                ; m_reserved ")"
                ; return ( p )
-             } 
+             } )
+   
       
              
              
              
       
-termlist =  do {
+termlist = try ( do {
                m_space
               ; t <-termparser
               ; m_space
               ; l <-termlist
               ; return ( List t l )
+              })
+
+           <|>  do {
+               return (Literal "\"\'emptylist\'\"")
               }
 
-          <|> do {
-              return (EmptyList)
-              }
 
-
-           
+          
 
 
 exparser :: Parsec [Char] Int Expression
 exparser = (m_lex $ string "false" >> return (BE False))
           <|> (m_lex $ string "true"  >> return (BE True))
-          <|> try (m_reserved "{" >> m_reserved "}"  >> return (BE True ))
           <|> try (do {string "{"
                   ; m_space
                   ;f <- formulaparser
@@ -236,7 +225,26 @@ exparser = (m_lex $ string "false" >> return (BE False))
                   ; m_reserved "}"
                   ; return (FE f)
                   })
+          <|> try (do { m_reserved "{" 
+                        ; option [] ignore
+                        ; m_reserved "}"  
+                        ; return (BE True )
+                        })
               
+ignore = try (do {
+             termparser
+             ; m_reserved "."
+             ; ignore
+             ; return [] 
+             }) 
+         <|> try (
+             do {
+             termparser
+             ; optional $ m_reserved "."
+             ; return []
+             }
+             )
+
 
 
 mainparser :: Parsec [Char] Int S
@@ -314,13 +322,13 @@ parseN3 s = runParser mainparser 0 "parameter" s
 
 
 
-
-
-
-
 parseFF p fname
                 = do{ input <- readFile fname
-                      ; return (runParser p 0 fname input)
+                      ; case runParser p 0 fname input of 
+                      {
+                      Left err -> return $ show err
+                      ; Right ans -> return $ show ans
+                      }                      
                      }
 
 
@@ -523,8 +531,9 @@ triples (Triple s p o) =  ( \a b c -> (
 triples   f = f
 
 treatList :: Term -> [Formula] -> (Term, [Formula])
-treatList (List (BlankConstruct e a b) l) f = (\x -> ((List e (fst x)), snd x))(treatList l ((Triple e a b):f))
+treatList (List (BlankConstruct e a b) l) f = (\x -> ((List e (fst x)), snd x))(treatList l ( (Triple e a b):f))
 treatList (List e l) f = (\x -> ((List e (fst x)), snd x))(treatList l f)
+--treatList (BlankConstruct e a b) f = ( e , ((Triple e a b):f))
 treatList t l = (t, l)
 
 
@@ -532,12 +541,12 @@ treatList t l = (t, l)
 
 convertTriple :: Formula -> Formula
 
-convertTriple (Triple (BlankConstruct e a b) p o) = Conjunction  (convertTriple (Triple e a b)) (convertTriple(Triple e p o))
-convertTriple (Triple s (BlankConstruct e a b) o) = Conjunction  (convertTriple (Triple e a b)) (convertTriple(Triple s e o))
-convertTriple (Triple s p (BlankConstruct e a b)) = Conjunction  (convertTriple (Triple e a b)) (convertTriple(Triple s p e))
+convertTriple (Triple (BlankConstruct e a b) p o) = Conjunction  (triples (Triple e a b)) (triples(Triple e p o))
+convertTriple (Triple s (BlankConstruct e a b) o) = Conjunction  (triples (Triple e a b)) (triples (Triple s e o))
+convertTriple (Triple s p (BlankConstruct e a b)) = Conjunction  (triples (Triple e a b)) (triples (Triple s p e))
 
-convertTriple (Triple s p (Objectlist o list)) = Conjunction (convertTriple (Triple s p o)) (convertTriple (Triple s p list))
-convertTriple (Triple s p (PredicateObjectList o p2 o2))= Conjunction (convertTriple (Triple s p o)) (convertTriple (Triple s p2 o2))
+convertTriple (Triple s p (Objectlist o list)) = Conjunction (triples (Triple s p o)) (triples (Triple s p list))
+convertTriple (Triple s p (PredicateObjectList o p2 o2))= Conjunction (triples (Triple s p o)) (triples (Triple s p2 o2))
 
 convertTriple (Triple s p o) = (Triple s p o)
 
@@ -547,7 +556,7 @@ convertTriple (Triple s p o) = (Triple s p o)
 
 conjunctions :: (Formula, [Formula]) -> Formula
 conjunctions (f, []) = f
-conjunctions (f,  (f1:l)) = conjunctions ((Conjunction f (convertTriple f1)), l)
+conjunctions (f,  (f1:l)) = conjunctions ((Conjunction f (triples f1)), l)
 
 
 

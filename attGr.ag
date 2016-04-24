@@ -7,7 +7,8 @@ imports
 import Data.List
 import Text.Parsec.Prim
 import N3grammar
-import Text.PrettyPrint
+--import Text.PrettyPrint
+--import Text.PrettyPrint.HughesPJ
 
 
 }
@@ -27,7 +28,7 @@ data Term
    | URI uri :: String
    | Literal l :: String
    | Exp  e :: Expression
-   | List list :: {[Term]}
+   | List term, list :: Term
 
 
 data Expression
@@ -56,7 +57,7 @@ data CTerm
      | Var t :: String
      | Con c :: String
      | CExp  e :: CExpression
-     | CList list :: {[CTerm]}
+     | CList t, list :: CTerm
 
 data CExpression
    | CBE   b  :: Bool
@@ -151,8 +152,9 @@ sem Formula
                  lhs.n1 = @e1.n1 `union` @e2.n1
                  lhs.ex = []
                  lhs.transformed = CImplication @e1.transformed @e2.transformed
-                 lhs.formula =  @e1.formula ++ "->" ++ @e2.formula
+                 lhs.formula =  @e1.formula ++ " -> " ++ @e2.formula
                  lhs.eye = CImplication @e1.eye @e2.eye
+                 lhs.eyeVar = @e1.eyeVar `union` @e2.eyeVar
                  lhs.eyeEx = []
                  e1.partOfImp = True
                  e2.partOfImp = True
@@ -217,11 +219,15 @@ sem Term
           e.partOfImp = False
            
 --TODO how to get the transformed values of the elements?
-   |List  lhs.n2 = []
+   |List  lhs.n2 = @term.n2 ++ @list.n2
           lhs.n1 = []
-          lhs.ex = []
-          lhs.transformed = CList []
-
+          lhs.ex = @term.ex ++ @list.ex
+          -- has to be adjusted
+          lhs.transformed = CList @term.transformed @list.transformed
+          lhs.formula =  "(" ++ @term.formula ++ "," ++ @list.formula ++ ")" 
+          lhs.eyeVar = @term.eyeVar ++ @list.eyeVar
+          lhs.eye = CList @term.transformed @list.transformed
+          lhs.eyeEx = @term.eyeEx ++ @list.eyeEx
                 
            
                 
@@ -247,39 +253,56 @@ sem Expression
 
 
 {
+
 --TODO: pretty print
 --TODO: clean up the ugly function!
+{-
 main ::  IO ()
 main = case parse mainparser "" ":a :b :c." of
               { Left err -> print err
               ; Right ans -> print (  show (  transformed_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )  )
               }
+-}
 
 
 
-
+             
 parseToCoreTree :: String -> IO ()
-parseToCoreTree inp = case parse mainparser "" inp of
-              { Left err -> print err
-              ; Right ans -> putStrLn $   show (  transformed_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )  
-              }
+parseToCoreTree filename = do {
+                       input <- readFile filename
+                       ; case runParser mainparser 0 filename input of
+                       {
+                       Left err -> print err
+                       ; Right ans -> putStrLn $   show (  transformed_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  ) 
+                       }
+                       }  
 
+              
 eyeToCore :: String -> IO ()
-eyeToCore inp = case parse mainparser "" inp of
+eyeToCore fname = do {
+               input <- readFile fname
+              ; case runParser mainparser 0 fname input of
               { Left err -> print err
-              ; Right ans -> putStrLn $   show (  eye_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )  
-              }
+              ; Right ans -> putStrLn $ show (  eye_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )  
+              }}
 
 parseToCoreFormula :: String -> IO ()
-parseToCoreFormula inp = case parse mainparser "" inp of
-              { Left err -> print err
-              ; Right ans -> print (  formula_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  ) )
+parseToCoreFormula fname = do {
+                input <- readFile fname
+                ; case runParser mainparser 0 fname input of
+                { Left err -> print err
+                ; Right ans -> print (  formula_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  ) )
+                }
               }
 
+
 testp :: String -> IO ()
-testp inp = case parse mainparser "" inp of
-              { Left err -> print err
-              ; Right ans -> putStrLn $   show (  eyeVar_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )  
+testp fname = do {
+                  input <- readFile fname
+                  ; case runParser mainparser 0 fname input of
+                  { Left err -> print err
+                  ; Right ans -> putStrLn $   show (  eyeVar_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  ) 
+                  } 
               }
 
 
@@ -293,13 +316,40 @@ qua (a:as) g f = Quant (Forall (Var a)) (qua as g f)
 --the qua function to generate a formula (just to see the translation as text)
 quaf :: [String] -> [String] -> String -> String
 quaf [] [] s = s
-quaf [] (a:as) s = "ForSome " ++ a ++ "." ++ (quaf [] as s)
-quaf (a:as) g s = "ForAll " ++ a ++ "." ++ (quaf as g s)
+quaf [] (a:as) s = "ForSome " ++ a ++ ". " ++ (quaf [] as s)
+quaf (a:as) g s = "ForAll " ++ a ++ ". " ++ (quaf as g s)
 
 
 imp :: Bool -> [String] -> [String]
 imp True l  = l
 imp False l = []
+
+--not really pretty, but at least easy
+printTree :: String -> Int -> String 
+printTree ('(':b) n = "\n"++ ( concat (replicate (n+1) "|  ") ) ++ ( printTree b (n+1) ) 
+printTree (')':b) n = ( printTree b (n-1) )
+printTree (s:b)   n  =  (s    : ( printTree b n))
+printTree s       n  =  s
+
+
+makeTree :: String -> String -> IO()
+makeTree fname "eye" = do {
+                input <- readFile fname
+                ; case runParser mainparser 0 fname input of
+                { Left err -> print err
+                ; Right ans -> putStrLn $ printTree  (show (  eye_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )) 0
+                }}
+makeTree fname "cwm" = do {
+                input <- readFile fname
+                ; case runParser mainparser 0 fname input of
+                { Left err -> print err
+                ; Right ans -> putStrLn $ printTree  (show  (  transformed_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )) 0
+                }
+                }
+
+
+
+
 
 }
 
