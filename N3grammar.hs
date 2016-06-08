@@ -97,8 +97,12 @@ simpleformula =  try (do {
                      ; m_reserved "=>"
                      ; t2 <- pretermparser
                      ; return (triples (Triple t1 (URI "http://www.w3.org/2000/10/swap/log#implies") t2))})
-
-  
+                 <|> try(do {
+                     t1 <- pretermparser
+                     ; m_reserved "<="
+                     ; t2 <- pretermparser
+                     ; return (triples (Triple t2 (URI "http://www.w3.org/2000/10/swap/log#implies") t1))})
+                
 
                 
                 
@@ -163,17 +167,17 @@ termparser = fmap Existential (string "_:" >> blank_node)
 
       <|> fmap Universal (char '?' >> (m_lex ( pn_prefix ) ))
  
---literals      
-      <|> try (do {
-             n <- int
-             ; m_space
-             ; return (Literal (show( n)))
-             })
+--literals  
       <|> try ( do {
              s <-  sign
              ;n <- (floating3 True)
              ; m_space
              ; return (Literal (show(s n)))
+             })    
+      <|> try (do {
+             n <- int
+             ; m_space
+             ; return (Literal (show( n)))
              })
       <|> try (do { 
                 l <- litcontent
@@ -361,7 +365,7 @@ parseFF p fname
 
 --terminals
 line = many $ noneOf "\n" --for comment lines
---for literals
+--for literals in quotes
 litcontent = try( do {
                 string "\"\"\""
                 ;optional $ char '\"'
@@ -556,6 +560,7 @@ triples   f = f
 
 treatList :: Term -> [Formula] -> (Term, [Formula])
 treatList (List (BlankConstruct s a b e) l) f = (\x -> ((List e (fst x)), snd x))(treatList l ( (Triple s a b):f))
+treatList (List (List nest rest) l) f = (\x y -> ( (List (fst x) (fst y)), (snd x)++(snd y)          ))(treatList (List nest rest)  []) (treatList l f)
 treatList (List e l) f = (\x -> ((List e (fst x)), snd x))(treatList l f)
 --treatList (BlankConstruct e a b) f = ( e , ((Triple e a b):f))
 treatList t l = (t, l)
@@ -582,9 +587,6 @@ conjunctions :: (Formula, [Formula]) -> Formula
 conjunctions (f, []) = f
 conjunctions (f,  (f1:l)) = conjunctions ((Conjunction f (triples f1)), l)
 
-wasBlank :: Term -> Formula
-wasBlank (BlankConstruct c a b e) = (Triple c a b)
-wasBlank a = (Triple a a a) 
 
 
 
