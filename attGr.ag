@@ -7,6 +7,8 @@ imports
 import Data.List
 import Text.Parsec.Prim
 import N3grammar
+import System.Directory
+import Text.PrintF
 --import Text.PrettyPrint
 --import Text.PrettyPrint.HughesPJ
 
@@ -408,6 +410,94 @@ compareU fname = do {
                }
 
 
+compareAll :: String ->  IO ()
+compareAll foname = do {
+               
+                files <- getDirectoryContents foname
+                ; let fs = (drop 2 files)-- I guess I should solve that differently? 
+               -- ; let fname = head fs
+               -- ;  input <- readFile (foname ++"/"++fname)
+               -- ; case runParser mainparser 0 fname input of
+               -- { Left err ->   writeFile "err.txt" (show err)
+               -- ; Right ans ->  writeFile "out.txt" $ niceTable (read (show ans)) fname
+                                
+               -- }
+               ;   (values, count) <- (readAll foname fs [] [0, 0, 0, 0])
+               ; let table = makeTable fs values count
+               ; writeFile "out.txt" $ ((replicate 40 ' ') ++ "cwm/eye  " ++ "cwm/uni  " ++ "uni/eye \n")++ table
+               }
+
+
+--readAll :: String -> [String] ->  -> IO() 
+readAll foname [] list [a,b,c,d] = do { 
+                            return $ ((reverse list), [a,b,c,d])
+                            }
+readAll foname fs list [a, b, c, d] = do { 
+                         let fname = (head fs)
+                         ; input <- readFile $ foname ++ "/"++ fname
+                         ; case runParser mainparser 0 fname input of
+                         {
+                         Left  err ->   (readAll foname (tail fs) ( [2, 2, 2 ]:list ) [a, b, c,d] )
+                         ;Right ans -> (\res -> ((\x y z -> (readAll foname (tail fs) (
+                                                             [x, 
+                                                              y, 
+                                                              z
+                                                             ]:list ) 
+                                                             [(a+x), (b+y), (c+z), (d+1)]
+                                                             ) )
+                                                             (cwm_and_eye res )
+                                                             (cwm_and_diff res)
+                                                             (eye_and_diff res)
+                                                             ))
+                                                             (read (show ans))
+                         }
+                         
+                       }   
+                       
+                                   
+--todo: every parsing only once               
+cwm_and_eye :: S -> Int
+cwm_and_eye f = boolToInt (( (show (  eye_Syn_S  x )) ==  ( show (  transformed_Syn_S x  )  ) ) ) 
+           where x = (  wrap_S  (sem_S  f) Inh_S   )     
+               
+cwm_and_diff :: S -> Int
+cwm_and_diff f = boolToInt (( (show (  diff_Syn_S  x )) ==  ( show (  transformed_Syn_S x  )  ) ) ) 
+           where x = (  wrap_S  (sem_S  f) Inh_S   ) 
+
+eye_and_diff :: S -> Int
+eye_and_diff f = boolToInt (( (show (  diff_Syn_S  x )) ==  ( show (  eye_Syn_S x  )  ) ) ) 
+           where x = (  wrap_S  (sem_S  f) Inh_S   ) 
+           
+           
+niceTable :: S -> String -> String
+niceTable f fname = (replicate 30 ' ') ++ "cwm/eye  " ++ "cwm/uni  " ++ "uni/eye \n" 
+                     ++ fname ++ (replicate (30 - length(fname)) ' ')  ++ (show  ( cwm_and_eye f ))++ (replicate 8 ' ') ++ (show  ( cwm_and_diff f )) ++ (replicate 8 ' ') ++ (show  ( eye_and_diff f ))       
+
+
+makeTable :: [String] -> [[Int]] -> [Int] -> String
+makeTable [] values stat = lastLine stat
+makeTable names values stat = (head names) ++ (replicate (40 - length(head names)) ' ') ++ (concat $ fmap makeEntry (head values)) ++ "\n"
+                         ++ (makeTable (tail names) (tail values) stat)
+
+
+lastLine :: [Int]-> String
+lastLine [a,b,c, d] = "Absolute Number (from " 
+                      ++ (show d) ++ "): " 
+                      ++ (replicate(15 - (length(show d))) ' ')
+                      ++ (show a) ++ (replicate (9 - (length(show a))) ' ')
+                      ++ (show b) ++ (replicate (9 - (length(show b))) ' ')
+                      ++ (show c)
+                      ++ "\n"
+                      ++ "Percentage: "
+                      ++ (show ((fromIntegral a)/(fromIntegral d)))
+                      ++" "
+                      ++ (show $ (fromIntegral b)/(fromIntegral d))
+                      ++ " "
+                      ++ (show $ (fromIntegral c)/(fromIntegral d))
+ 
+makeEntry :: Int -> String 
+makeEntry n = (show n) ++ (replicate 8 ' ')
+
 
 --data TreeElem = CFormula | CTerm
 
@@ -422,6 +512,9 @@ compareU fname = do {
 --            | otherwise = [(x,y)]
 
 
+boolToInt :: Bool -> Int
+boolToInt False = 0
+boolToInt True = 1
 
 }
 

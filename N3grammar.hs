@@ -28,7 +28,7 @@ data Term =  URI String
            | Exp Expression 
            | Objectlist Term Term 
            | PredicateObjectList Term Term Term 
-           | BlankConstruct Term Term Term 
+           | BlankConstruct Term Term Term Term
 --TODO I did not find out how the attribute grammar can work on lists, if that is solved I would prefer to use haskell lists here
            | List Term Term
            deriving Show 
@@ -40,13 +40,13 @@ data Formula = Triple Term Term Term | Conjunction Formula Formula | Implication
 
 --TODO separate input grammer from pure grammar then translate to core
 --TODO I don't like the empty non-triples. maybe I can put that out again?
---TODO path-notation ^ and !
+--TODO path-notation ^ 
 
 def = emptyDef{ commentLine = "#"
               , opStart = oneOf "_:;,.=><"
               , opLetter = oneOf "; ,.=><"
               , reservedOpNames = [";", "<=", ".", "=>"]
-              , reservedNames = ["\"", "<", ">", "(", ")", "[", "]", ",", ";", "{}", "{", "}"]
+              , reservedNames = ["!", "\"", "<", ">", "(", ")", "[", "]", ",", ";", "{}", "{", "}"]
               }
 
 TokenParser{ identifier = m_identifier
@@ -74,11 +74,12 @@ formulaparser = try (do {
                 
 
 simpleformula =  try (do {
-                      s <- termparser
-                     ;p <- termparser
+                      s <- pretermparser
+                     ;p <- pretermparser
                      ;o <- objectparser
                      ; return (triples (Triple s p o))
                      })
+
                 <|> try(do {
                      e1 <- exparser
                      ; m_reserved "=>"
@@ -92,11 +93,13 @@ simpleformula =  try (do {
                      })
                 --this case occurs but I am still not sure how to handle it
                    <|> try(do {
-                     t1 <- termparser
+                     t1 <- pretermparser
                      ; m_reserved "=>"
-                     ; t2 <- termparser
+                     ; t2 <- pretermparser
                      ; return (triples (Triple t1 (URI "http://www.w3.org/2000/10/swap/log#implies") t2))})
 
+  
+
                 
                 
 
@@ -105,20 +108,36 @@ simpleformula =  try (do {
 
 
 
-objectparser = try (do{ o <-termparser
+objectparser = try (do{ o <- pretermparser
                   ; m_reserved ","
                   ; o2 <- objectparser
                    ; skipMany $ m_reserved ";"
                   ; return (Objectlist o o2) } )
               <|> try (do{ o <- termparser
                   ; m_reserved ";"
-                  ; p2 <- termparser
+                  ; p2 <- pretermparser
                   ; o2 <- objectparser
                   ; skipMany $ m_reserved ";"
                   ; return (PredicateObjectList o p2 o2) } )
-              <|> try (do{ o <- termparser
+              <|> try (do{ o <- pretermparser
                     ; skipMany $ m_reserved ";"
                      ; return o })
+pretermparser = try (do {
+                        s <- termparser
+                        ; m_space
+                        ; string "!"
+                        ; m_space
+                        ; p <- pretermparser
+                        ; l <- getState
+                        ; updateState (+1)
+                        ; return (BlankConstruct s p (Existential $".b_" ++  show(l)) (Existential $".b_" ++  show(l)) )
+                        }
+                        )
+                 <|>  do {
+                      s <- termparser
+                      ; return s
+                      }  
+
                     
 
                  
@@ -159,14 +178,10 @@ termparser = fmap Existential (string "_:" >> blank_node)
       <|> try (do { 
                 l <- litcontent
                ; m_space
-               ; o <- option [] (langtag <|>  ( string "^^">> iriref))
+               ; o <- option [] (langtag <|>  ( string "^^">> (iriref  <|> urip)))
                ; m_space
                ; return (Literal $l++"_"++o)
              })
-
-      
-
-
              
       <|> fmap Exp ( exparser )
       <|> try (
@@ -185,18 +200,21 @@ termparser = fmap Existential (string "_:" >> blank_node)
                ; m_space 
                ; l <- getState
                ; updateState (+1)
-               ; return (BlankConstruct  (Existential $".b_" ++  show(l)) t o)
+               ; return (BlankConstruct  (Existential $".b_" ++  show(l)) t o (Existential $".b_" ++  show(l)))
           }
+
       <|> try ( do {string "("
-               ; m_space
-               ; p <- termlist
-               ; m_reserved ")"
-               ; return ( p )
-             } )
-   
+                ; m_space
+                ; p <- termlist
+                ; m_reserved ")"
+                ; return ( p )
+                } 
+               )
+               
+
       
              
-             
+          
              
       
 termlist = try ( do {
@@ -212,7 +230,13 @@ termlist = try ( do {
               }
 
 
-          
+urip =  do {             
+              pr <- pname_ns
+              ; pos <- option [] pn_local
+              ; m_space
+              ; return $ pr ++ pos
+             }
+                          
 
 
 exparser :: Parsec [Char] Int Expression
@@ -531,7 +555,7 @@ triples (Triple s p o) =  ( \a b c -> (
 triples   f = f
 
 treatList :: Term -> [Formula] -> (Term, [Formula])
-treatList (List (BlankConstruct e a b) l) f = (\x -> ((List e (fst x)), snd x))(treatList l ( (Triple e a b):f))
+treatList (List (BlankConstruct s a b e) l) f = (\x -> ((List e (fst x)), snd x))(treatList l ( (Triple s a b):f))
 treatList (List e l) f = (\x -> ((List e (fst x)), snd x))(treatList l f)
 --treatList (BlankConstruct e a b) f = ( e , ((Triple e a b):f))
 treatList t l = (t, l)
@@ -541,9 +565,9 @@ treatList t l = (t, l)
 
 convertTriple :: Formula -> Formula
 
-convertTriple (Triple (BlankConstruct e a b) p o) = Conjunction  (triples (Triple e a b)) (triples(Triple e p o))
-convertTriple (Triple s (BlankConstruct e a b) o) = Conjunction  (triples (Triple e a b)) (triples (Triple s e o))
-convertTriple (Triple s p (BlankConstruct e a b)) = Conjunction  (triples (Triple e a b)) (triples (Triple s p e))
+convertTriple (Triple (BlankConstruct c a b e) p o) = Conjunction  (triples (Triple c a b)) (triples(Triple e p o))
+convertTriple (Triple s (BlankConstruct c a b e) o) = Conjunction  (triples (Triple c a b)) (triples (Triple s e o))
+convertTriple (Triple s p (BlankConstruct c a b e)) = Conjunction  (triples (Triple c a b)) (triples (Triple s p e))
 
 convertTriple (Triple s p (Objectlist o list)) = Conjunction (triples (Triple s p o)) (triples (Triple s p list))
 convertTriple (Triple s p (PredicateObjectList o p2 o2))= Conjunction (triples (Triple s p o)) (triples (Triple s p2 o2))
@@ -558,6 +582,9 @@ conjunctions :: (Formula, [Formula]) -> Formula
 conjunctions (f, []) = f
 conjunctions (f,  (f1:l)) = conjunctions ((Conjunction f (triples f1)), l)
 
+wasBlank :: Term -> Formula
+wasBlank (BlankConstruct c a b e) = (Triple c a b)
+wasBlank a = (Triple a a a) 
 
 
 
