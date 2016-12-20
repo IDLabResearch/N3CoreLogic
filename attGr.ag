@@ -116,6 +116,7 @@ attr Term
    syn eyeVar :: {[String]}
    syn eyeEx :: {[String]}
    inh insideQuotation :: Bool
+   inh varInImpException :: Bool
 --like team submission but universal different
    syn diff :: CTerm
 
@@ -160,6 +161,9 @@ sem Formula
             s.insideQuotation = @lhs.insideQuotation
             p.insideQuotation = @lhs.insideQuotation
             o.insideQuotation = @lhs.insideQuotation
+            s.varInImpException = impExc @p.eye @lhs.insideQuotation
+            p.varInImpException = False
+            o.varInImpException = impExc @p.eye @lhs.insideQuotation
             lhs.diff = CTriple @s.diff @p.diff @o.diff 
  
                
@@ -238,7 +242,7 @@ sem Term
           lhs.transformed = CExp @e.transformed 
           lhs.formula =  @e.formula
           lhs.eye = CExp @e.eye
-          lhs.eyeEx= @e.eyeEx
+          lhs.eyeEx= exception @lhs.varInImpException @lhs.insideQuotation @e.eyeEx
           e.insideQuotation = True
           lhs.diff = CExp @e.diff
            
@@ -274,8 +278,8 @@ sem Expression
           f.uni = @f.n1 \\ @lhs.scope
           lhs.eye = CFE (qua [] (imp @lhs.insideQuotation @f.eyeEx) @f.eye )
           lhs.eyeEx = @f.eyeEx
-          f.insideQuotation = True
           lhs.diff = CFE (qua [] @f.ex @f.diff)
+          f.insideQuotation = True
           
 
 
@@ -361,7 +365,7 @@ quaf (a:as) g s = "ForAll " ++ a ++ ". " ++ (quaf as g s)
 
 imp :: Bool -> [String] -> [String]
 imp False l  = l
-imp True l = []
+imp f l = []
 
 --not really pretty, but at least easy
 printTree :: String -> Int -> String 
@@ -555,6 +559,14 @@ boolToInt True = 1
 keepEx :: Bool -> [String] -> [String]
 keepEx True l = l
 keepEx False l = []
+
+impExc :: CTerm -> Bool -> Bool
+impExc (Con "uri_http://www.w3.org/2000/10/swap/log#implies") b = True
+impExc t b = b 
+
+exception :: Bool -> Bool -> [String] -> [String]
+exception True False s = []
+exception t    f s = s
 }
 
 
