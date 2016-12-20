@@ -8,7 +8,6 @@ import Data.List
 import Text.Parsec.Prim
 import N3grammar
 import System.Directory
-import Text.PrintF
 --import Text.PrettyPrint
 --import Text.PrettyPrint.HughesPJ
 
@@ -100,6 +99,7 @@ attr Formula
    syn eye :: CFormula
    syn eyeVar :: {[String]}
    syn eyeEx :: {[String]}
+   inh insideQuotation :: Bool
 --like team submission but universal different
    syn diff :: CFormula 
 
@@ -115,6 +115,7 @@ attr Term
    syn eye :: CTerm
    syn eyeVar :: {[String]}
    syn eyeEx :: {[String]}
+   inh insideQuotation :: Bool
 --like team submission but universal different
    syn diff :: CTerm
 
@@ -128,7 +129,7 @@ attr Expression
    syn eye :: CExpression
    syn eyeVar :: {[String]}
    syn eyeEx :: {[String]}
-   inh partOfImp :: Bool
+   inh insideQuotation :: Bool
 --like team submission but universal different
    syn diff :: CExpression  
 
@@ -144,6 +145,7 @@ sem S
                  lhs.formula = quaf  (@f.n1  `union` @f.n2) @f.ex   @f.formula
                  lhs.eye = qua @f.eyeVar @f.eyeEx @f.eye
                  lhs.eyeEx = @f.eyeEx
+                 f.insideQuotation = False
                  lhs.diff = qua @f.eyeVar @f.ex @f.diff
   
 sem Formula
@@ -155,6 +157,9 @@ sem Formula
             lhs.eye = CTriple @s.eye @p.eye @o.eye  
             lhs.eyeVar = (@s.eyeVar `union` @p.eyeVar) `union` @o.eyeVar 
             lhs.eyeEx = (@s.eyeEx `union` @p.eyeEx) `union` @o.eyeEx 
+            s.insideQuotation = @lhs.insideQuotation
+            p.insideQuotation = @lhs.insideQuotation
+            o.insideQuotation = @lhs.insideQuotation
             lhs.diff = CTriple @s.diff @p.diff @o.diff 
  
                
@@ -165,21 +170,23 @@ sem Formula
                  lhs.formula =  @e1.formula ++ " -> " ++ @e2.formula
                  lhs.eye = CImplication @e1.eye @e2.eye
                  lhs.eyeVar = @e1.eyeVar `union` @e2.eyeVar
-                 lhs.eyeEx = []
-                 e1.partOfImp = True
-                 e2.partOfImp = True
+                 lhs.eyeEx = keepEx @lhs.insideQuotation (@e1.eyeEx `union` @e2.eyeEx) 
+                 e1.insideQuotation = @lhs.insideQuotation
+                 e2.insideQuotation = @lhs.insideQuotation
                  lhs.diff = CImplication @e1.diff @e2.diff
 
-   | Conjunction lhs.n2 = @c1.n2 `union` @c2.n2
-                 lhs.n1 = @c1.n1 `union` @c2.n1
-                 lhs.ex = @c1.ex `union` @c2.ex
+   | Conjunction lhs.n2 = @c2.n2 `union` @c1.n2
+                 lhs.n1 = @c2.n1 `union` @c1.n1
+                 lhs.ex = @c2.ex `union` @c1.ex
                  c1.scope = @lhs.scope
                  c2.scope = @lhs.scope
                  lhs.transformed = CConjunction @c1.transformed @c2.transformed
                  lhs.formula =   @c1.formula ++ " ^ " ++ @c2.formula
                  lhs.eye = CConjunction @c1.eye @c2.eye
-                 lhs.eyeVar = @c1.eyeVar `union` @c2.eyeVar
-                 lhs.eyeEx = @c1.eyeEx `union` @c2.eyeEx
+                 lhs.eyeVar = @c2.eyeVar `union` @c1.eyeVar
+                 lhs.eyeEx = @c2.eyeEx `union` @c1.eyeEx
+                 c1.insideQuotation = @lhs.insideQuotation
+                 c2.insideQuotation = @lhs.insideQuotation
                  lhs.diff = CConjunction @c1.diff @c2.diff
 
                  
@@ -232,7 +239,7 @@ sem Term
           lhs.formula =  @e.formula
           lhs.eye = CExp @e.eye
           lhs.eyeEx= @e.eyeEx
-          e.partOfImp = False
+          e.insideQuotation = True
           lhs.diff = CExp @e.diff
            
 --TODO how to get the transformed values of the elements?
@@ -265,8 +272,9 @@ sem Expression
           lhs.transformed = CFE (qua (@f.n1 \\ @lhs.scope) @f.ex @f.transformed)  
           lhs.formula = "<"++ (quaf (@f.n1 \\ @lhs.scope) @f.ex @f.formula) ++">"
           f.uni = @f.n1 \\ @lhs.scope
-          lhs.eye = CFE (qua [] (imp @lhs.partOfImp @f.eyeEx) @f.eye )
+          lhs.eye = CFE (qua [] (imp @lhs.insideQuotation @f.eyeEx) @f.eye )
           lhs.eyeEx = @f.eyeEx
+          f.insideQuotation = True
           lhs.diff = CFE (qua [] @f.ex @f.diff)
           
 
@@ -328,9 +336,16 @@ testp fname = do {
 
 -- function for quantifiers: takes Universals and existentials as lists and the formula without quantifier and produces a quantified formula
 qua :: [String] -> [String] -> CFormula -> CFormula
+--qua u e f = foldr fa f u
+--fa :: String ->  CFormula
+--fa  u f = Quant (Forall (Var u)) f
+
 qua [] [] f  = f
 qua [] (a:as) f = Quant (Forsome (Var a)) (qua [] as f)
 qua (a:as) g f = Quant (Forall (Var a)) (qua as g f)
+
+
+
 
 
 --the qua function to generate a formula (just to see the translation as text)
@@ -340,9 +355,13 @@ quaf [] (a:as) s = "ForSome " ++ a ++ ". " ++ (quaf [] as s)
 quaf (a:as) g s = "ForAll " ++ a ++ ". " ++ (quaf as g s)
 
 
+
+
+
+
 imp :: Bool -> [String] -> [String]
-imp True l  = l
-imp False l = []
+imp False l  = l
+imp True l = []
 
 --not really pretty, but at least easy
 printTree :: String -> Int -> String 
@@ -395,6 +414,23 @@ compareB fname = do {
                                                               0
                         }
                }
+
+
+topUni :: String -> IO()
+topUni fname = do {
+               input <- readFile fname
+               ; case runParser mainparser 0 fname input of
+                        { 
+                          Left err -> print err
+                          ; Right ans -> putStrLn $ show (  n1_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  ) 
+  
+                        }
+               }
+
+
+
+
+
 
 compareU :: String -> IO()
 compareU fname = do {
@@ -516,6 +552,9 @@ boolToInt :: Bool -> Int
 boolToInt False = 0
 boolToInt True = 1
 
+keepEx :: Bool -> [String] -> [String]
+keepEx True l = l
+keepEx False l = []
 }
 
 
