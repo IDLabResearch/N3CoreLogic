@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module N3grammar
 (
 mainparser
@@ -59,18 +61,41 @@ TokenParser{ identifier = m_identifier
 
 formulaparser :: Parsec [Char] Int Formula
 formulaparser = try (do {
-                      f1 <- simpleformula
+                      f1 <- psimpleformula
                       ; skipMany $ m_reserved ";" 
                       ; m_reserved "."
                       ; f2 <- formulaparser
                       ; return (Conjunction f1 f2)
                      })
                 <|> do {
-                         f <- simpleformula
+                         f <- psimpleformula
                          ; skipMany $ m_reserved ";"
                          ; return f}
 
+
                     
+psimpleformula = try(do {
+                        f <-simpleformula
+                        ; return f
+                        })
+                 <|> try (do {
+                        b <- blankconstruct
+                        ; return $ triples $ fromBlank b
+                        }
+                        )
+                 <|> try (do {
+                          b <- annoBlank
+                          ; return $ triples $fromBlank b
+                          })       
+                 <|> do {
+                         termparser
+                         ; m_space
+                         ; string "."
+                         ; m_space
+                         ; f <- psimpleformula
+                         ; return f
+                        }       
+ 
                 
 
 simpleformula =  try (do {
@@ -79,10 +104,12 @@ simpleformula =  try (do {
                      ;o <- objectparser
                      ; return (triples (Triple s p o))
                      })
-
+                     
                 <|> try(do {
                      e1 <- exparser
-                     ; m_reserved "=>"
+                     ; m_space
+                     ; string "=>"
+                     ; m_space
                      ; e2 <- exparser
                      ; return (Implication e1 e2)})
                 <|>  try (do {
@@ -127,6 +154,17 @@ objectparser = try (do{ o <- pretermparser
                     ; skipMany $ m_reserved ";"
                      ; return o })
 pretermparser = try (do {
+                        s <- blankconstruct
+                        ; return s
+                        }
+                        )
+                 <|>  do {
+                      s <- termparser
+                      ; return s
+                      }  
+
+
+blankconstruct = try (do {
                         s <- termparser
                         ; m_space
                         ; string "!"
@@ -137,10 +175,20 @@ pretermparser = try (do {
                         ; return (BlankConstruct s p (Existential $".b_" ++  show(l)) (Existential $".b_" ++  show(l)) )
                         }
                         )
-                 <|>  do {
-                      s <- termparser
-                      ; return s
-                      }  
+     
+                        
+annoBlank     =  try ( do {
+                           string "["
+                           ; m_space
+                           ; t <- termparser
+                           ; o <- objectparser
+                           ; string "]"
+                           ; m_space 
+                           ; l <- getState
+                           ; updateState (+1)
+                           ; return (BlankConstruct  (Existential $".b_" ++  show(l)) t o (Existential $".b_" ++  show(l)))
+                           }
+                      )  
 
                     
 
@@ -188,24 +236,19 @@ termparser = fmap Existential (string "_:" >> blank_node)
              })
              
       <|> fmap Exp ( exparser )
-      <|> try (
+      <|> try (do{
+               a <- annoBlank
+               ; return a
+               })
+      <|> 
               do {
               m_reserved "["
               ; m_reserved "]"
               ; l <- getState
               ; updateState (+1)
               ;return $ Existential $".b_" ++  show(l)
-             })
-      <|> do { string "["
-               ; m_space
-               ; t <- termparser
-               ; o <- objectparser
-               ; string "]"
-               ; m_space 
-               ; l <- getState
-               ; updateState (+1)
-               ; return (BlankConstruct  (Existential $".b_" ++  show(l)) t o (Existential $".b_" ++  show(l)))
-          }
+             }
+             
 
       <|> try ( do {string "("
                 ; m_space
@@ -588,7 +631,8 @@ conjunctions (f, []) = f
 conjunctions (f,  (f1:l)) = conjunctions ((Conjunction f (triples f1)), l)
 
 
-
+fromBlank :: Term -> Formula
+fromBlank (BlankConstruct c a b e) = (Triple c a b)
 
 {-
 --string sets as specified in the official grammar
