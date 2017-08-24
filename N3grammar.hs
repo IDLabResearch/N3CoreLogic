@@ -43,13 +43,13 @@ data Formula = Triple Term Term Term | Conjunction Formula Formula | Implication
 
 --TODO separate input grammer from pure grammar then translate to core
 --TODO I don't like the empty non-triples. maybe I can put that out again?
---TODO path-notation ^ 
+
 
 def = emptyDef{ commentLine = "#"
               , opStart = oneOf "_:;,.=><"
               , opLetter = oneOf "; ,.=><"
               , reservedOpNames = [";", "<=", ".", "=>"]
-              , reservedNames = ["!", "\"", "<", ">", "(", ")", "[", "]", ",", ";", "{}", "{", "}"]
+              , reservedNames = ["!", "^", "\"", "<", ">", "(", ")", "[", "]", ",", ";", "{}", "{", "}"]
               }
 
 TokenParser{ identifier = m_identifier
@@ -177,6 +177,34 @@ blankconstruct = try (do {
                         ; m_space
                         ; p <- pretermparser
                         ; m_space
+                        ; l <- getState
+                        ; updateState (+1)
+                        ; return (BlankConstruct s p (Existential $".b_" ++  show(l)) (Existential $".b_" ++  show(l)) )
+                        }
+                        )
+                  <|> try (do {
+                        o <- termparser
+                        ; m_space
+                        ; string "^"
+                        ; m_space
+                        ; p <- pretermparser
+                        ; m_space
+                        ; l <- getState
+                        ; updateState (+1)
+                        ; return (BlankConstruct (Existential $".b_" ++  show(l)) p o  (Existential $".b_" ++  show(l)) )
+                        }
+                        )
+                  <|>  try (do {
+                        string "["
+                        ; m_space
+                        ; string "is"
+                        ; spaces
+                        ; p <- pretermparser
+                        ; spaces
+                        ; string "of"
+                        ; m_space 
+                        ; s <- termparser
+                        ; string "]"
                         ; l <- getState
                         ; updateState (+1)
                         ; return (BlankConstruct s p (Existential $".b_" ++  show(l)) (Existential $".b_" ++  show(l)) )
