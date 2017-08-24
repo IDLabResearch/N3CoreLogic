@@ -20,6 +20,7 @@ import Text.ParserCombinators.Parsec.Char
 import Text.ParserCombinators.Parsec.Number
 import Data.Char
 import Numeric
+import Debug.Trace
 
 
 data S = Mainformula Formula deriving Show
@@ -170,6 +171,7 @@ blankconstruct = try (do {
                         ; string "!"
                         ; m_space
                         ; p <- pretermparser
+                        ; m_space
                         ; l <- getState
                         ; updateState (+1)
                         ; return (BlankConstruct s p (Existential $".b_" ++  show(l)) (Existential $".b_" ++  show(l)) )
@@ -266,7 +268,7 @@ termparser = fmap Existential (string "_:" >> blank_node)
       
 termlist = try ( do {
                m_space
-              ; t <-termparser
+              ; t <-pretermparser
               ; m_space
               ; l <-termlist
               ; return ( List t l )
