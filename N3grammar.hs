@@ -88,15 +88,20 @@ psimpleformula = try(do {
                           b <- annoBlank
                           ; return $ triples $fromBlank b
                           })       
-                 <|> do {
+                 <|> try (do {
                          termparser
                          ; m_space
                          ; string "."
                          ; m_space
                          ; f <- psimpleformula
                          ; return f
-                        }       
- 
+                        })
+                 <|> do {
+                        begin
+                        ; m_space
+                        ; f <- psimpleformula
+                        ; return f       
+                        }
                 
 
 simpleformula =  try (do {
@@ -346,8 +351,9 @@ begin = try (do space ; return [] )
                      ; newline
                      ; return []
                      })
-        <|> try (do prefix)
+         <|> try (do prefix)
          <|> try (do base)
+         <|> try (do explicitQuantification)
          <|> try (do termparser; char '.'; return [])
 
 
@@ -386,8 +392,41 @@ base = try (do {
            ; return b
            })
 
+--explicit quantification is just ignored. Handling needs to be added
+explicitQuantification = do {
+           string "@for"
+           ; c <- (string "All") <|> (string "Some")
+           ; spaces
+           ; a <- variables
+           ; char '.'
+           ; spaces
+           ; return a
+           }
 
+variables = try (do {
+           v <- variable
+           ; char ','
+           ; spaces
+           ; v2 <- variables
+           ; return v
+           })
+         <|> (do {
+             v <- variable
+             ; return v
+            })
+           
 
+variable   = try ( do {
+           pr <- pname_ns
+           ; pos <- option [] pn_local
+           ; spaces
+           ; return pr
+           })
+         <|> (do {
+          a <- iriref
+          ; spaces
+          ; return a
+          })
 
 parseN3 :: String -> Either ParseError S
 parseN3 s = runParser mainparser 0 "parameter" s
