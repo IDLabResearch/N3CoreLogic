@@ -31,6 +31,7 @@ data Term =  URI String
            | Exp Expression 
            | Objectlist Term Term 
            | PredicateObjectList Term Term Term 
+           | InversePredicateObjectList Term Term Term 
            | BlankConstruct Term Term Term Term
 --TODO I did not find out how the attribute grammar can work on lists, if that is solved I would prefer to use haskell lists here
            | List Term Term
@@ -40,7 +41,7 @@ data Formula = Triple Term Term Term | Conjunction Formula Formula | Implication
 
 --TODO ignore :a.
 
-
+--TODO @keywords
 --TODO separate input grammer from pure grammar then translate to core
 --TODO I don't like the empty non-triples. maybe I can put that out again?
 
@@ -110,7 +111,18 @@ simpleformula =  try (do {
                      ;o <- objectparser
                      ; return (triples (Triple s p o))
                      })
-                     
+                <|>  try (do {
+                      s <- pretermparser
+                     ; spaces
+                     ; string "is"
+                     ; spaces
+                     ;p <- pretermparser 
+                     ; spaces
+                     ; string "of" 
+                     ; spaces
+                     ;o <- objectparser
+                     ; return (triples (Triple o p s))
+                     })  
                 <|> try(do {
                      e1 <- exparser
                      ; m_space
@@ -156,6 +168,18 @@ objectparser = try (do{ o <- pretermparser
                   ; o2 <- objectparser
                   ; skipMany $ m_reserved ";"
                   ; return (PredicateObjectList o p2 o2) } )
+              <|> try (do{ o <- termparser
+                  ; m_reserved ";"
+                  ; spaces
+                  ; string "is"
+                  ; spaces
+                  ; p2 <- pretermparser
+                  ; spaces
+                  ; string "of"
+                  ; spaces
+                  ; o2 <- objectparser
+                  ; skipMany $ m_reserved ";"
+                  ; return (InversePredicateObjectList o p2 o2) } )
               <|> try (do{ o <- pretermparser
                     ; skipMany $ m_reserved ";"
                      ; return o })
@@ -194,24 +218,9 @@ blankconstruct = try (do {
                         ; return (BlankConstruct (Existential $".b_" ++  show(l)) p o  (Existential $".b_" ++  show(l)) )
                         }
                         )
-                  <|>  try (do {
-                        string "["
-                        ; m_space
-                        ; string "is"
-                        ; spaces
-                        ; p <- pretermparser
-                        ; spaces
-                        ; string "of"
-                        ; m_space 
-                        ; s <- termparser
-                        ; string "]"
-                        ; l <- getState
-                        ; updateState (+1)
-                        ; return (BlankConstruct s p (Existential $".b_" ++  show(l)) (Existential $".b_" ++  show(l)) )
-                        }
-                        )
+
      
-                        
+--do I need the try here?                        
 annoBlank     =  try ( do {
                            string "["
                            ; m_space
@@ -223,7 +232,26 @@ annoBlank     =  try ( do {
                            ; updateState (+1)
                            ; return (BlankConstruct  (Existential $".b_" ++  show(l)) t o (Existential $".b_" ++  show(l)))
                            }
-                      )  
+                      ) 
+--I hope to find a more elegant solution for that case
+                  <|>  try (do {
+                        string "["
+                        ; m_space
+                        ; string "is"
+                        ; spaces
+                        ; p <- pretermparser
+                        ; spaces
+                        ; string "of"
+                        ; m_space 
+                        ; s <- termparser
+                        ; spaces
+                        ; string "]"
+                        ; m_space
+                        ; l <- getState
+                        ; updateState (+1)
+                        ; return (BlankConstruct s p (Existential $".b_" ++  show(l)) (Existential $".b_" ++  show(l)) )
+                        }
+                        ) 
 
                     
 
@@ -480,19 +508,13 @@ line = many $ noneOf "\n" --for comment lines
 --for literals in quotes
 litcontent = try( do {
                 string "\"\"\""
-                ;optional $ char '\"'
-                ; optional $ char '\"'
-                ;a <- many $ (convertToString (noneOf "\"\\" <|> uchar)) <|> echar
-                ; string "\"\"\""
-                ; return $ concat a
+                ; a <- manyTill anyChar (try (string "\"\"\""))
+                ; return a
                 } )
             <|> try (do {
                 string "\'\'\'"
-                ;optional $ char '\''
-                ; optional $ char '\''
-                ;a <- many $ (convertToString (noneOf "\'\\" <|> uchar)) <|> echar
-                ; string "\'\'\'"
-                ; return $ concat a
+                ; a <- manyTill anyChar (try (string "\'\'\'"))
+                ; return  a
                 })
 
             <|> try( do {
@@ -686,8 +708,12 @@ convertTriple (Triple (BlankConstruct c a b e) p o) = Conjunction  (triples (Tri
 convertTriple (Triple s (BlankConstruct c a b e) o) = Conjunction  (triples (Triple c a b)) (triples (Triple s e o))
 convertTriple (Triple s p (BlankConstruct c a b e)) = Conjunction  (triples (Triple c a b)) (triples (Triple s p e))
 
+convertTriple (Triple (Objectlist s list) p o) = Conjunction (triples (Triple s p o)) (triples (Triple list p o))
+convertTriple (Triple (PredicateObjectList s p2 o2) p o)= Conjunction (triples (Triple s p o)) (triples (Triple o p2 o2))
+convertTriple (Triple (InversePredicateObjectList s p2 o2) p o)= Conjunction (triples (Triple s p o)) (triples (Triple o2 p2 o))
 convertTriple (Triple s p (Objectlist o list)) = Conjunction (triples (Triple s p o)) (triples (Triple s p list))
 convertTriple (Triple s p (PredicateObjectList o p2 o2))= Conjunction (triples (Triple s p o)) (triples (Triple s p2 o2))
+convertTriple (Triple s p (InversePredicateObjectList o p2 o2))= Conjunction (triples (Triple s p o)) (triples (Triple o2 p2 s))
 
 convertTriple (Triple s p o) = (Triple s p o)
 
