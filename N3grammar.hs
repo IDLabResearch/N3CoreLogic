@@ -97,12 +97,13 @@ psimpleformula = try(do {
                          ; f <- psimpleformula
                          ; return f
                         })
-                 <|> do {
+                 <|> try (do {
                         begin
                         ; m_space
                         ; f <- psimpleformula
                         ; return f       
-                        }
+                        })
+
                 
 
 simpleformula =  try (do {
@@ -256,7 +257,19 @@ annoBlank     =  try ( do {
                     
 
                  
-termparser = fmap Existential (string "_:" >> blank_node)
+termparser = 
+      try (do {
+                   t <- termparser2
+                   ; return t
+                   })  
+        <|> try (do{
+               a <- annoBlank
+               ; return a
+               })
+
+       
+               
+termparser2 = fmap Existential (string "_:" >> blank_node)
        <|> try (do {
                    m_lex $ (char 'a'>> space )
                    ; return (URI "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
@@ -299,18 +312,6 @@ termparser = fmap Existential (string "_:" >> blank_node)
              })
              
       <|> fmap Exp ( exparser )
-      <|> try (do{
-               a <- annoBlank
-               ; return a
-               })
-      <|> 
-              do {
-              m_reserved "["
-              ; m_reserved "]"
-              ; l <- getState
-              ; updateState (+1)
-              ;return $ Existential $".b_" ++  show(l)
-             }
              
 
       <|> try ( do {string "("
@@ -320,8 +321,14 @@ termparser = fmap Existential (string "_:" >> blank_node)
                 ; return ( p )
                 } 
                )
-               
-
+     <|> try (
+              do {
+              m_reserved "["
+              ; m_reserved "]"
+              ; l <- getState
+              ; updateState (+1)
+              ;return $ Existential $".b_" ++  show(l)
+             })  
       
              
           
@@ -385,9 +392,11 @@ mainparser :: Parsec [Char] Int S
 mainparser = mparser <* eof 
             where mparser :: Parsec [Char] Int S
                   mparser = try (do {
-                               skipMany begin
+--                               skipMany begin
                                ;f <- formulaparser
                                ;m_reserved "."
+                               ; spaces
+                               ; skipMany begin
                               -- ; skipMany $ dotConstr
                                ; return (Mainformula f)                             
                                })
@@ -410,7 +419,8 @@ begin = try (do space ; return [] )
          <|> try (do prefix)
          <|> try (do base)
          <|> try (do explicitQuantification)
-         <|> try (do termparser; char '.'; return [])
+--coud be an efficiency problem that [:a :b]. is scanned twice
+         <|> (do termparser2; char '.'; return [])
 
 
 
