@@ -62,21 +62,22 @@ TokenParser{ identifier = m_identifier
 
 
 formulaparser :: Parsec [Char] Int Formula
-formulaparser = try (do {
+formulaparser = do {
                       f1 <- psimpleformula
                       ; skipMany $ m_reserved ";" 
-                      ; m_reserved "."
-                      ; f2 <- formulaparser
-                      ; return (Conjunction f1 f2)
-                     })
-                <|> do {
-                         f <- psimpleformula
+                      ;try(do {
+                             m_reserved "."
+                             ; f2 <- formulaparser
+                             ; return (Conjunction f1 f2)
+                          })
+                      <|> do {
                          ; skipMany $ m_reserved ";"
-                         ; return f}
+                         ; return f1}
+                     }
 
 
                     
-psimpleformula = try(do {
+psimpleformula =   try(do {
                         f <-simpleformula
                         ; return f
                         })
@@ -84,11 +85,11 @@ psimpleformula = try(do {
                         b <- blankconstruct
                         ; return $ triples $ fromBlank b
                         }
-                        )
+                        )  
                  <|> try (do {
                           b <- annoBlank
                           ; return $ triples $fromBlank b
-                          })       
+                          })     
                  <|> try (do {
                          termparser
                          ; m_space
@@ -108,46 +109,54 @@ psimpleformula = try(do {
 
 simpleformula =  try (do {
                       s <- pretermparser
-                     ;p <- pretermparser
-                     ;o <- objectparser
-                     ; return (triples (Triple s p o))
-                     })
-                <|>  try (do {
-                      s <- pretermparser
-                     ; spaces
-                     ; string "is"
-                     ; spaces
-                     ;p <- pretermparser 
-                     ; spaces
-                     ; string "of" 
-                     ; spaces
-                     ;o <- objectparser
-                     ; return (triples (Triple o p s))
-                     })  
+                     ; do{                      
+                              ;p <- pretermparser
+                              ;o <- objectparser
+                              ; return (triples (Triple s p o)) 
+                             }
+                      <|> do{
+                              ; spaces
+                              ; string "is"
+                              ; spaces
+                              ;p <- pretermparser 
+                              ; spaces
+                              ; string "of" 
+                              ; spaces
+                              ;o <- objectparser
+                              ; return (triples (Triple o p s))
+                             }
+                     }) 
                 <|> try(do {
                      e1 <- exparser
                      ; m_space
-                     ; string "=>"
-                     ; m_space
-                     ; e2 <- exparser
-                     ; return (Implication e1 e2)})
-                <|>  try (do {
-                     e1 <- exparser
-                     ; m_reserved "<="
-                     ; e2 <- exparser
-                     ; return (Implication e2 e1 )   
+                     ; do{
+                               ; string "=>"
+                               ; m_space
+                               ; e2 <- exparser
+                               ; return (Implication e1 e2)
+                              }
+
+                      <|>  do {
+                               m_reserved "<="
+                               ; e2 <- exparser
+                               ; return (Implication e2 e1 ) 
+                               }  
                      })
                 --this case occurs but I am still not sure how to handle it
                    <|> try(do {
                      t1 <- pretermparser
-                     ; m_reserved "=>"
-                     ; t2 <- pretermparser
-                     ; return (triples (Triple t1 (URI "http://www.w3.org/2000/10/swap/log#implies") t2))})
-                 <|> try(do {
-                     t1 <- pretermparser
-                     ; m_reserved "<="
-                     ; t2 <- pretermparser
-                     ; return (triples (Triple t2 (URI "http://www.w3.org/2000/10/swap/log#implies") t1))})
+                     ; do {
+                          ; m_reserved "=>"
+                          ; t2 <- pretermparser
+                          ; return (triples (Triple t1 (URI "http://www.w3.org/2000/10/swap/log#implies") t2))
+                          }
+                    <|> do {
+                           t1 <- pretermparser
+                           ; m_reserved "<="
+                           ; t2 <- pretermparser
+                           ; return (triples (Triple t2 (URI "http://www.w3.org/2000/10/swap/log#implies") t1))
+                           }
+                     })
                 
 
                 
@@ -156,34 +165,39 @@ simpleformula =  try (do {
                      
                      
 
-
+--TODO: simplify
 
 objectparser = try (do{ o <- pretermparser
-                  ; m_reserved ","
-                  ; o2 <- objectparser
-                   ; skipMany $ m_reserved ";"
-                  ; return (Objectlist o o2) } )
-              <|> try (do{ o <- termparser
-                  ; m_reserved ";"
-                  ; p2 <- pretermparser
-                  ; o2 <- objectparser
-                  ; skipMany $ m_reserved ";"
-                  ; return (PredicateObjectList o p2 o2) } )
-              <|> try (do{ o <- termparser
-                  ; m_reserved ";"
-                  ; spaces
-                  ; string "is"
-                  ; spaces
-                  ; p2 <- pretermparser
-                  ; spaces
-                  ; string "of"
-                  ; spaces
-                  ; o2 <- objectparser
-                  ; skipMany $ m_reserved ";"
-                  ; return (InversePredicateObjectList o p2 o2) } )
-              <|> try (do{ o <- pretermparser
-                    ; skipMany $ m_reserved ";"
-                     ; return o })
+                    ; try (do{
+                              ; m_reserved ","
+                              ; o2 <- objectparser
+                              ; skipMany $ m_reserved ";"
+                              ; return (Objectlist o o2) 
+                              } )
+                    <|> try (do{ 
+                              m_reserved ";"
+                              ; p2 <- pretermparser
+                              ; o2 <- objectparser
+                              ; skipMany $ m_reserved ";"
+                              ; return (PredicateObjectList o p2 o2) 
+                            } )
+                     <|> try (do{ 
+                              m_reserved ";"
+                              ; spaces
+                              ; string "is"
+                              ; spaces
+                              ; p2 <- pretermparser
+                              ; spaces
+                              ; string "of"
+                              ; spaces
+                              ; o2 <- objectparser
+                              ; skipMany $ m_reserved ";"
+                              ; return (InversePredicateObjectList o p2 o2) 
+                             } )
+                      <|> try (do{ 
+                              skipMany $ m_reserved ";"
+                              ; return o })
+                     })
 pretermparser = try (do {
                         s <- blankconstruct
                         ; return s
@@ -195,64 +209,62 @@ pretermparser = try (do {
                       }  
 
 
-blankconstruct = try (do {
+blankconstruct = do {
                         s <- termparser
                         ; m_space
-                        ; string "!"
-                        ; m_space
-                        ; p <- pretermparser
-                        ; m_space
-                        ; l <- getState
-                        ; updateState (+1)
-                        ; return (BlankConstruct s p (Existential $".b_" ++  show(l)) (Existential $".b_" ++  show(l)) )
+                        ;try( do{
+                                string "!"
+                               ; m_space
+                               ; p <- pretermparser
+                               ; m_space
+                               ; l <- getState
+                               ; updateState (+1)
+                               ; return (BlankConstruct s p (Existential $".b_" ++  show(l)) (Existential $".b_" ++  show(l)) )
+                                 }
+                            )
+                       <|> do {
+                              string "^"
+                               ; m_space
+                               ; p <- pretermparser
+                               ; m_space
+                               ; l <- getState
+                               ; updateState (+1)
+                               ; return (BlankConstruct (Existential $".b_" ++  show(l)) p s  (Existential $".b_" ++  show(l)) )
+                              }
                         }
-                        )
-                  <|> try (do {
-                        o <- termparser
-                        ; m_space
-                        ; string "^"
-                        ; m_space
-                        ; p <- pretermparser
-                        ; m_space
-                        ; l <- getState
-                        ; updateState (+1)
-                        ; return (BlankConstruct (Existential $".b_" ++  show(l)) p o  (Existential $".b_" ++  show(l)) )
-                        }
-                        )
 
      
 --do I need the try here?                        
-annoBlank     =  try ( do {
+annoBlank     =  do {
                            string "["
                            ; m_space
-                           ; t <- termparser
-                           ; o <- objectparser
-                           ; string "]"
-                           ; m_space 
-                           ; l <- getState
-                           ; updateState (+1)
-                           ; return (BlankConstruct  (Existential $".b_" ++  show(l)) t o (Existential $".b_" ++  show(l)))
-                           }
-                      ) 
---I hope to find a more elegant solution for that case
-                  <|>  try (do {
-                        string "["
-                        ; m_space
-                        ; string "is"
-                        ; spaces
-                        ; p <- pretermparser
-                        ; spaces
-                        ; string "of"
-                        ; m_space 
-                        ; s <- termparser
-                        ; spaces
-                        ; string "]"
-                        ; m_space
-                        ; l <- getState
-                        ; updateState (+1)
-                        ; return (BlankConstruct s p (Existential $".b_" ++  show(l)) (Existential $".b_" ++  show(l)) )
-                        }
-                        ) 
+                           ; try (do{
+                                     ; string "is"
+                                     ; spaces
+                                     ; p <- pretermparser
+                                     ; spaces
+                                     ; string "of"
+                                     ; m_space 
+                                     ; s <- termparser
+                                     ; spaces
+                                     ; string "]"
+                                     ; m_space
+                                     ; l <- getState
+                                     ; updateState (+1)
+                                     ; return (BlankConstruct s p (Existential $".b_" ++  show(l)) (Existential $".b_" ++  show(l)) )
+                                     })
+                          <|> do{
+                                     t <- termparser
+                                     ; o <- objectparser
+                                     ; string "]"
+                                     ; m_space 
+                                     ; l <- getState
+                                     ; updateState (+1)
+                                     ; return (BlankConstruct  (Existential $".b_" ++  show(l)) t o (Existential $".b_" ++  show(l)))
+                                     }
+                            }
+
+                         
 
                     
 
@@ -280,7 +292,7 @@ termparser2 = fmap Existential (string "_:" >> blank_node)
                    })         
 
 
-       <|> try (fmap URI ( iriref)) 
+       <|> fmap URI ( iriref) 
        <|> try (do {
               pr <- pname_ns
               ; pos <- option [] pn_local
@@ -314,13 +326,12 @@ termparser2 = fmap Existential (string "_:" >> blank_node)
       <|> fmap Exp ( exparser )
              
 
-      <|> try ( do {string "("
+      <|> do {string "("
                 ; m_space
                 ; p <- termlist
                 ; m_reserved ")"
                 ; return ( p )
                 } 
-               )
      <|> try (
               do {
               m_reserved "["
@@ -341,7 +352,6 @@ termlist = try ( do {
               ; l <-termlist
               ; return ( List t l )
               })
-
            <|>  do {
                return (Literal "\"\'emptylist\'\"")
               }
@@ -359,32 +369,33 @@ urip =  do {
 exparser :: Parsec [Char] Int Expression
 exparser = (m_lex $ string "false" >> return (BE False))
           <|> (m_lex $ string "true"  >> return (BE True))
-          <|> try (do {string "{"
+          <|> do {string "{"
                   ; m_space
-                  ;f <- formulaparser
-                  ; optional (m_reserved ".")
-                  ; m_reserved "}"
-                  ; return (FE f)
-                  })
-          <|> try (do { m_reserved "{" 
-                        ; option [] ignore
-                        ; m_reserved "}"  
-                        ; return (BE True )
-                        })
+                  ; try ( do{
+                            f <- formulaparser
+                            ; optional (m_reserved ".")
+                            ; m_reserved "}"
+                            ; return (FE f)
+                         })
+                    <|> do {  
+                            option [] ignore
+                            ; m_reserved "}"  
+                            ; return (BE True )
+                           }
+                 }
               
-ignore = try (do {
+ignore = do {
              termparser
-             ; m_reserved "."
-             ; ignore
-             ; return [] 
-             }) 
-         <|> try (
-             do {
-             termparser
-             ; optional $ m_reserved "."
-             ; return []
+             ; try( do{
+                      ; m_reserved "."
+                      ; ignore
+                      ; return [] 
+                      }) 
+            <|> do {
+                      ; optional $ m_reserved "."
+                      ; return []
+                   }
              }
-             )
 
 
 
@@ -410,12 +421,12 @@ parseN3 inp = case parse mainparser "" inp of
 -}
 
 begin = try (do space ; return [] )
-        <|> try ( do {
+        <|> do {
                      char '#'
                      ; line
                      ; newline
                      ; return []
-                     })
+                     }
          <|> try (do prefix)
          <|> try (do base)
          <|> try (do explicitQuantification)
@@ -425,7 +436,7 @@ begin = try (do space ; return [] )
 
 
 -- currently just used to accept prefixes, later I also want to deal with them
-prefix = try (do { string "@prefix"
+prefix = do { string "@prefix"
               ; spaces
               ; a <- pname_ns
               ; spaces
@@ -433,30 +444,30 @@ prefix = try (do { string "@prefix"
               ; char '.'
               ; spaces 
               ; return $ a++b
-            })
-      <|> try(do {
+            }
+      <|> do {
               caseInsensitiveString "prefix"
               ; spaces
               ; a <- pname_ns
               ; spaces
               ; b <- iriref
               ; return $ a++b
-              })   
+              }  
 
-base = try (do {
+base = do {
            string "@base"
            ; spaces
            ; a <- iriref
            ; char '.'
            ; spaces
            ; return a
-           })
-       <|> try (do {
+           }
+       <|> do {
            caseInsensitiveString "base"
            ; spaces
            ; b <- iriref
            ; return b
-           })
+           }
 
 --explicit quantification is just ignored. Handling needs to be added
 explicitQuantification = do {
@@ -469,30 +480,31 @@ explicitQuantification = do {
            ; return a
            }
 
-variables = try (do {
-           v <- variable
-           ; char ','
-           ; spaces
-           ; v2 <- variables
-           ; return v
-           })
-         <|> (do {
-             v <- variable
-             ; return v
-            })
+variables = do {
+                v <- variable
+                ; spaces
+                ; do{
+                    char ','
+                    ; spaces
+                    ; v2 <- variables
+                    ; return []
+                    }
+                <|> do { return v
+                       }
+                }
            
 
-variable   = try ( do {
+variable   =  do {
            pr <- pname_ns
            ; pos <- option [] pn_local
            ; spaces
            ; return pr
-           })
-         <|> (do {
-          a <- iriref
-          ; spaces
-          ; return a
-          })
+           }
+           <|> do {
+           a <- iriref
+           ; spaces
+           ; return a
+           }
 
 parseN3 :: String -> Either ParseError S
 parseN3 s = runParser mainparser 0 "parameter" s
@@ -527,18 +539,18 @@ litcontent = try( do {
                 ; return  a
                 })
 
-            <|> try( do {
+            <|> do {
                 char '\"'
                 ; a <- many $ (convertToString (noneOf "\"\\\n\r" <|> uchar)) <|> echar
                 ; char '\"'
                 ; return $ concat a
-                })
-            <|> try( do {
+                }
+            <|> do {
                 char '\''
                 ;a <- many $ (convertToString (noneOf "\'\\\n\r" <|> uchar)) <|> echar
                 ;char '\''
                 ; return $ concat a
-                })
+                }
 
                
                 
@@ -591,13 +603,13 @@ langtag = do {
              ; en <- many lang2
              ; return $ "@" ++  w ++ (concat en)
              }
-lang2 = try(
+lang2 = 
            do{
            a <- char '-'
            ; b <- many1 (oneOf $ ['a' .. 'z']++['A' .. 'Z']++['0'..'9'])
            ; return $ a:b
            }
-           )
+           
 
 
 
