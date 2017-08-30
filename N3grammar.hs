@@ -21,7 +21,7 @@ import Text.ParserCombinators.Parsec.Number
 import Data.Char
 import Numeric
 import Debug.Trace
-
+import Data.Typeable
 
 data S = Mainformula Formula deriving Show
 data Term =  URI String 
@@ -91,14 +91,6 @@ psimpleformula =   try(do {
                           ; return $ triples $fromBlank b
                           })     
                  <|> try (do {
-                         termparser
-                         ; m_space
-                         ; string "."
-                         ; m_space
-                         ; f <- psimpleformula
-                         ; return f
-                        })
-                 <|> try (do {
                         begin
                         ; m_space
                         ; f <- psimpleformula
@@ -107,10 +99,37 @@ psimpleformula =   try(do {
 
                 
 
-simpleformula =  try (do {
+simpleformula = try (do {
+                     e1 <- exparser
+                     ; m_space
+                     ; do{
+                               ; string "=>"
+                               ; m_space
+                               ; e2 <- objectparser
+                               ; return (implications "=>" e1 e2)
+                              }
+
+                      <|>  do {
+                               m_reserved "<="
+                               ; m_space
+                               ; e2 <- objectparser
+                               ; return (implications "<=" e1 e2 )
+                               }
+                      <|> do  {
+                              p <- termparser
+                              ;o <- objectparser
+                              ; return (triples (Triple (Exp e1) p o)) 
+                              }
+                      <|> do {
+                              string "."
+                              ; f <- psimpleformula
+                              ; return f
+                              }
+                     })
+                    <|> try (do {
                       s <- pretermparser
                      ; do{                      
-                              ;p <- pretermparser
+                              ;p <- predicateparser
                               ;o <- objectparser
                               ; return (triples (Triple s p o)) 
                              }
@@ -118,7 +137,7 @@ simpleformula =  try (do {
                               ; spaces
                               ; string "is"
                               ; spaces
-                              ;p <- pretermparser 
+                              ;p <- termparser
                               ; spaces
                               ; string "of" 
                               ; spaces
@@ -126,37 +145,7 @@ simpleformula =  try (do {
                               ; return (triples (Triple o p s))
                              }
                      }) 
-                <|> try(do {
-                     e1 <- exparser
-                     ; m_space
-                     ; do{
-                               ; string "=>"
-                               ; m_space
-                               ; e2 <- exparser
-                               ; return (Implication e1 e2)
-                              }
 
-                      <|>  do {
-                               m_reserved "<="
-                               ; e2 <- exparser
-                               ; return (Implication e2 e1 ) 
-                               }  
-                     })
-                --this case occurs but I am still not sure how to handle it
-                   <|> try(do {
-                     t1 <- pretermparser
-                     ; do {
-                          ; m_reserved "=>"
-                          ; t2 <- pretermparser
-                          ; return (triples (Triple t1 (URI "http://www.w3.org/2000/10/swap/log#implies") t2))
-                          }
-                    <|> do {
-                           t1 <- pretermparser
-                           ; m_reserved "<="
-                           ; t2 <- pretermparser
-                           ; return (triples (Triple t2 (URI "http://www.w3.org/2000/10/swap/log#implies") t1))
-                           }
-                     })
                 
 
                 
@@ -176,7 +165,7 @@ objectparser = try (do{ o <- pretermparser
                               } )
                     <|> try (do{ 
                               m_reserved ";"
-                              ; p2 <- pretermparser
+                              ; p2 <- predicateparser
                               ; o2 <- objectparser
                               ; skipMany $ m_reserved ";"
                               ; return (PredicateObjectList o p2 o2) 
@@ -186,7 +175,7 @@ objectparser = try (do{ o <- pretermparser
                               ; spaces
                               ; string "is"
                               ; spaces
-                              ; p2 <- pretermparser
+                              ; p2 <- termparser
                               ; spaces
                               ; string "of"
                               ; spaces
@@ -198,6 +187,27 @@ objectparser = try (do{ o <- pretermparser
                               skipMany $ m_reserved ";"
                               ; return o })
                      })
+
+implications :: String -> Expression -> Term -> Formula
+
+implications "=>" e1 (Exp e2)   = (Implication e1 e2)
+implications "=>" e1 (Objectlist (Exp e2) o2) = (Conjunction (Implication e1 e2) (implications "=>" e1 o2))
+implications "=>" e1 (Objectlist e2 o2) = (Conjunction (Triple (Exp e1) (URI "http://www.w3.org/2000/10/swap/log#implies") e2) (implications "=>" e1 o2))
+implications "=>" e1 (PredicateObjectList (Exp e2) p o2) = (Conjunction (Implication e1 e2) (triples (Triple (Exp e1) p o2 )))
+implications "=>" e1 (PredicateObjectList e2 p o2) = (Conjunction (Triple (Exp e1) (URI "http://www.w3.org/2000/10/swap/log#implies") e2) (triples (Triple (Exp e1) p o2 )))
+implications "=>" e1 e2   = (Triple (Exp e1) (URI "http://www.w3.org/2000/10/swap/log#implies")  e2)
+
+implications "<=" e1 (Exp e2)    = (Implication e2 e1)
+implications "<=" e1 (Objectlist (Exp e2) o2) = (Conjunction (Implication  e2 e1) (implications "<=" e1 o2))
+implications "<=" e1 (Objectlist e2 o2) = (Conjunction (Triple  e2 (URI "http://www.w3.org/2000/10/swap/log#implies") (Exp e1)) (implications "<=" e1 o2))
+implications "<=" e1 (PredicateObjectList (Exp e2) p o2) = (Conjunction (Implication e2 e1) (triples (Triple (Exp e1) p o2 )))
+implications "<=" e1 (PredicateObjectList e2 p o2) = (Conjunction (Triple e2 (URI "http://www.w3.org/2000/10/swap/log#implies") (Exp e1)) (triples (Triple (Exp e1) p o2 )))
+implications "<=" e1 e2   = (Triple e2 (URI "http://www.w3.org/2000/10/swap/log#implies")  (Exp e1))
+
+
+
+
+
 pretermparser = try (do {
                         s <- blankconstruct
                         ; return s
@@ -254,7 +264,7 @@ annoBlank     =  do {
                                      ; return (BlankConstruct s p (Existential $".b_" ++  show(l)) (Existential $".b_" ++  show(l)) )
                                      })
                           <|> do{
-                                     t <- termparser
+                                     t <- predicateparser
                                      ; o <- objectparser
                                      ; string "]"
                                      ; m_space 
@@ -266,7 +276,22 @@ annoBlank     =  do {
 
                          
 
-                    
+predicateparser = try( do {
+                     t <- termparser
+                     ; return t
+                     }) 
+                <|> do {
+                   m_lex $ (char 'a'>> space )
+                   ; return (URI "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+                   } 
+               <|>  try(do {
+                   m_reserved "=>" 
+                   ; return (URI "http://www.w3.org/2000/10/swap/log#implies")
+                   } )  
+               <|> do {
+                   m_reserved "=" 
+                   ; return (URI "http://www.w3.org/2002/07/owl#sameAs")
+                   }                     
 
                  
 termparser = 
@@ -279,19 +304,14 @@ termparser =
                ; return a
                })
 
+termparser2 = do {
+                 t <- termparser3
+                 ; return t
+                 }
+              <|> fmap Exp ( exparser )
        
                
-termparser2 = fmap Existential (string "_:" >> blank_node)
-       <|> try (do {
-                   m_lex $ (char 'a'>> space )
-                   ; return (URI "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
-                   })    
-       <|> try (do {
-                   m_reserved "=" 
-                   ; return (URI "http://www.w3.org/2002/07/owl#sameAs")
-                   })         
-
-
+termparser3 = fmap Existential (string "_:" >> blank_node)
        <|> fmap URI ( iriref) 
        <|> try (do {
               pr <- pname_ns
@@ -318,12 +338,12 @@ termparser2 = fmap Existential (string "_:" >> blank_node)
       <|> try (do { 
                 l <- litcontent
                ; m_space
-               ; o <- option [] (langtag <|>  ( string "^^">> (iriref  <|> urip)))
+               ; o <- option [] (langtag <|>  ( try(string "^^")>> (iriref  <|> urip)))
                ; m_space
                ; return (Literal $l++"_"++o)
              })
              
-      <|> fmap Exp ( exparser )
+--      <|> fmap Exp ( exparser )
              
 
       <|> do {string "("
@@ -340,8 +360,8 @@ termparser2 = fmap Existential (string "_:" >> blank_node)
               ; updateState (+1)
               ;return $ Existential $".b_" ++  show(l)
              })  
-      
-             
+    
+           
           
              
       
@@ -383,6 +403,10 @@ exparser = (m_lex $ string "false" >> return (BE False))
                             ; return (BE True )
                            }
                  }
+
+
+
+
               
 ignore = do {
              termparser
@@ -403,7 +427,6 @@ mainparser :: Parsec [Char] Int S
 mainparser = mparser <* eof 
             where mparser :: Parsec [Char] Int S
                   mparser = try (do {
---                               skipMany begin
                                ;f <- formulaparser
                                ;m_reserved "."
                                ; spaces
@@ -421,18 +444,18 @@ parseN3 inp = case parse mainparser "" inp of
 -}
 
 begin = try (do space ; return [] )
-        <|> do {
-                     char '#'
+        <|> do {commentline}
+         <|> try (do prefix)
+         <|> try (do base)
+         <|> try (do keywords)
+         <|> try (do explicitQuantification)
+         <|> (do termparser2; char '.'; return [])
+
+commentline = do{    char '#'
                      ; line
                      ; newline
                      ; return []
-                     }
-         <|> try (do prefix)
-         <|> try (do base)
-         <|> try (do explicitQuantification)
---coud be an efficiency problem that [:a :b]. is scanned twice
-         <|> (do termparser2; char '.'; return [])
-
+                 }
 
 
 -- currently just used to accept prefixes, later I also want to deal with them
@@ -469,6 +492,13 @@ base = do {
            ; return b
            }
 
+keywords = do {
+           string "@keywords"
+           ; spaces
+           ; a <- manyTill anyChar (try (string "."))
+           ; return a
+           }
+
 --explicit quantification is just ignored. Handling needs to be added
 explicitQuantification = do {
            string "@for"
@@ -483,8 +513,12 @@ explicitQuantification = do {
 variables = do {
                 v <- variable
                 ; spaces
+                ; optional commentline
+                ; spaces
                 ; do{
                     char ','
+                    ; spaces
+                    ; optional commentline
                     ; spaces
                     ; v2 <- variables
                     ; return []
