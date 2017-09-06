@@ -11,7 +11,6 @@ import System.Directory
 --import Text.PrettyPrint
 --import Text.PrettyPrint.HughesPJ
 
-
 }
 
 --N3 Grammar
@@ -29,6 +28,7 @@ data Term
    | URI uri :: String
    | Literal l :: String
    | Exp  e :: Expression
+--this seems to be wrong!
    | List term, list :: Term
 
 
@@ -142,12 +142,12 @@ sem S
    | Mainformula f.scope = @f.n1  `union` @f.n2
                  f.uni   = @f.n1  `union` @f.n2
                  lhs.ex = @f.ex
-                 lhs.transformed = qua (@f.n1  `union` @f.n2) @f.ex @f.transformed
-                 lhs.formula = quaf  (@f.n1  `union` @f.n2) @f.ex   @f.formula
-                 lhs.eye = qua @f.eyeVar @f.eyeEx @f.eye
+                 lhs.transformed = qua (sort (@f.n1  `union` @f.n2)) @f.ex @f.transformed
+                 lhs.formula = quaf (sort  (@f.n1  `union` @f.n2)) @f.ex   @f.formula 
+                 lhs.eye = qua (sort @f.eyeVar ) @f.eyeEx @f.eye
                  lhs.eyeEx = @f.eyeEx
                  f.insideQuotation = False
-                 lhs.diff = qua @f.eyeVar @f.ex @f.diff
+                 lhs.diff = qua (sort  @f.eyeVar) @f.ex @f.diff
   
 sem Formula
    | Triple lhs.n2 = (@s.n2 `union` @p.n2) `union` @o.n2
@@ -454,7 +454,7 @@ compareAll :: String ->  IO ()
 compareAll foname = do {
                
                 files <- getDirectoryContents foname
-                ; let fs = (drop 2 files)-- I guess I should solve that differently? 
+                ; let fs = (drop 2 files)-- I guess I should solve that differently?
                -- ; let fname = head fs
                -- ;  input <- readFile (foname ++"/"++fname)
                -- ; case runParser mainparser 0 fname input of
@@ -475,6 +475,7 @@ readAll foname [] list [a,b,c,d] = do {
 readAll foname fs list [a, b, c, d] = do { 
                          let fname = (head fs)
                          ; input <- readFile $ foname ++ "/"++ fname
+                         ; print (foname ++ "/"++ fname ++ "  " ++ (boolToString (isInfixOf "?" input)) ++"\n")
                          ; case runParser mainparser 0 fname input of
                          {
                          Left  err ->   (readAll foname (tail fs) ( [2, 2, 2 ]:list ) [a, b, c,d] )
@@ -567,6 +568,12 @@ impExc t b = b
 exception :: Bool -> Bool -> [String] -> [String]
 exception True False s = []
 exception t    f s = s
+
+
+boolToString :: Bool -> String
+boolToString True = "TRUE"
+boolToString False = "FALSE"
+
 }
 
 

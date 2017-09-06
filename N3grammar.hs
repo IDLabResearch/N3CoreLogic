@@ -64,14 +64,16 @@ TokenParser{ identifier = m_identifier
 formulaparser :: Parsec [Char] Int Formula
 formulaparser = do {
                       f1 <- psimpleformula
-                      ; skipMany $ m_reserved ";" 
+                      ; skipMany $ char ';'
+                      ; spaces
                       ;try(do {
                              m_reserved "."
                              ; f2 <- formulaparser
                              ; return (Conjunction f1 f2)
                           })
                       <|> do {
-                         ; skipMany $ m_reserved ";"
+                         ; skipMany $ char ';'
+                         ; spaces
                          ; return f1}
                      }
 
@@ -110,7 +112,7 @@ simpleformula = try (do {
                               }
 
                       <|>  do {
-                               m_reserved "<="
+                               try( m_reserved "<=")
                                ; m_space
                                ; e2 <- objectparser
                                ; return (implications "<=" e1 e2 )
@@ -128,7 +130,13 @@ simpleformula = try (do {
                      })
                     <|> try (do {
                       s <- pretermparser
-                     ; do{                      
+                     ; try( do{
+                         string "<="
+                         ; spaces
+                         ; o <- objectparser
+                         ; return (triples (Triple o (URI "http://www.w3.org/2000/10/swap/log#implies") s))
+                         })
+                     <|> do{                      
                               ;p <- predicateparser
                               ;o <- objectparser
                               ; return (triples (Triple s p o)) 
@@ -160,18 +168,19 @@ objectparser = try (do{ o <- pretermparser
                     ; try (do{
                               ; m_reserved ","
                               ; o2 <- objectparser
-                              ; skipMany $ m_reserved ";"
+                              ; skipMany $ (char ';'>> spaces)
                               ; return (Objectlist o o2) 
                               } )
                     <|> try (do{ 
-                              m_reserved ";"
+                              char ';'
+                              ; spaces
                               ; p2 <- predicateparser
                               ; o2 <- objectparser
-                              ; skipMany $ m_reserved ";"
+                              ; skipMany $ (char ';' >> spaces)
                               ; return (PredicateObjectList o p2 o2) 
                             } )
                      <|> try (do{ 
-                              m_reserved ";"
+                              char ';'
                               ; spaces
                               ; string "is"
                               ; spaces
@@ -180,11 +189,11 @@ objectparser = try (do{ o <- pretermparser
                               ; string "of"
                               ; spaces
                               ; o2 <- objectparser
-                              ; skipMany $ m_reserved ";"
+                              ; skipMany $ (char ';'>> spaces)
                               ; return (InversePredicateObjectList o p2 o2) 
                              } )
                       <|> try (do{ 
-                              skipMany $ m_reserved ";"
+                              skipMany $ (char ';' >>spaces)
                               ; return o })
                      })
 
@@ -321,7 +330,7 @@ termparser3 = fmap Existential (string "_:" >> blank_node)
               } )           
           
 
-      <|> fmap Universal (char '?' >> (m_lex ( pn_prefix ) ))
+      <|> fmap Universal (char '?' >> (m_lex ( varname ) ))
  
 --literals  
       <|> try ( do {
@@ -388,6 +397,8 @@ urip =  do {
 
 exparser :: Parsec [Char] Int Expression
 exparser = (m_lex $ string "false" >> return (BE False))
+          <|> try (m_lex $ string "@false" >> return (BE False))
+          <|> try (m_lex $ string "@true"  >> return (BE True))
           <|> (m_lex $ string "true"  >> return (BE True))
           <|> do {string "{"
                   ; m_space
@@ -599,7 +610,7 @@ convertToString a = do { res <- a
 iriref :: Parsec [Char] Int String 
 iriref = try (do {
             char '<'
-            ; uri <- many $ ( (noneOf  (['\x00'..'\x20'] ++ "<>\"{}|^`\\"))<|>  uchar)
+            ; uri <- many $ ( (noneOf  (['\x00'..'\x20'] ++ "=<>\"{}|^`\\"))<|>  uchar)
             ; char '>'
             ; m_space
             ;return uri
@@ -691,7 +702,17 @@ p_end =
             ;b <- (alphaNum <|>  oneOf "-_") -- (oneOf pn_chars)
             ; return [b] 
            })
-
+varname :: Parsec [Char] Int String
+varname = 
+        try (do { 
+                 a <-  (alphaNum <|>  char '_') --oneOf (pn_chars++".")
+                 ; b <- p_end
+                 ; return ([a]++b)
+                 })
+        <|> try (do {            
+            ;b <- (alphaNum <|>  char '_') -- (oneOf pn_chars)
+            ; return [b] 
+           })
 
 pn_local :: Parsec [Char] Int String
 pn_local = try (do {
