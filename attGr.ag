@@ -83,7 +83,9 @@ attr S
    syn eyeVar :: {[String]}
    syn eyeEx :: {[String]}
 --like team submission but universal different
-   syn diff :: CFormula   
+   syn diff :: CFormula  
+--count how deeply nested universals occur
+   syn count :: Int
    
 
 attr Formula
@@ -102,6 +104,9 @@ attr Formula
    inh insideQuotation :: Bool
 --like team submission but universal different
    syn diff :: CFormula 
+--count how deeply nested universals occur
+   syn count :: Int
+   inh c :: Int
 
 attr Term
 --Attributes for standard--
@@ -119,6 +124,9 @@ attr Term
    inh varInImpException :: Bool
 --like team submission but universal different
    syn diff :: CTerm
+--count how deeply nested universals occur
+   syn count :: Int
+   inh c :: Int
 
 attr Expression
 --Attributes for standard--
@@ -133,7 +141,9 @@ attr Expression
    inh insideQuotation :: Bool
 --like team submission but universal different
    syn diff :: CExpression  
-
+--count how deeply nested universals occur
+   syn count :: Int
+   inh c :: Int
 
 --Definition   
 --TODO: default value should be empty list
@@ -146,8 +156,11 @@ sem S
                  lhs.formula = quaf (sort  (@f.n1  `union` @f.n2)) @f.ex   @f.formula 
                  lhs.eye = qua (sort @f.eyeVar ) @f.eyeEx @f.eye
                  lhs.eyeEx = @f.eyeEx
+                 lhs.eyeVar = @f.eyeVar
                  f.insideQuotation = False
                  lhs.diff = qua (sort  @f.eyeVar) @f.ex @f.diff
+                 f.c = 1
+                 lhs.count = findDepth @f.n1 1 @f.count
   
 sem Formula
    | Triple lhs.n2 = (@s.n2 `union` @p.n2) `union` @o.n2
@@ -165,6 +178,10 @@ sem Formula
             p.varInImpException = False
             o.varInImpException = impExc @p.eye @lhs.insideQuotation
             lhs.diff = CTriple @s.diff @p.diff @o.diff 
+            s.c = @lhs.c
+            p.c = @lhs.c
+            o.c = @lhs.c
+            lhs.count = max @s.count (max @p.count @o.count)
  
                
    | Implication lhs.n2 = []
@@ -178,6 +195,9 @@ sem Formula
                  e1.insideQuotation = @lhs.insideQuotation
                  e2.insideQuotation = @lhs.insideQuotation
                  lhs.diff = CImplication @e1.diff @e2.diff
+                 e1.c = @lhs.c
+                 e2.c = @lhs.c
+                 lhs.count = max @e1.count @e2.count
 
    | Conjunction lhs.n2 = @c2.n2 `union` @c1.n2
                  lhs.n1 = @c2.n1 `union` @c1.n1
@@ -192,7 +212,9 @@ sem Formula
                  c1.insideQuotation = @lhs.insideQuotation
                  c2.insideQuotation = @lhs.insideQuotation
                  lhs.diff = CConjunction @c1.diff @c2.diff
-
+                 c1.c = @lhs.c
+                 c2.c = @lhs.c
+                 lhs.count = max @c1.count @c2.count
                  
 sem Term
    | Universal lhs.n2 = ["U"++ @u]
@@ -204,6 +226,8 @@ sem Term
                lhs.eye = Var  ("U"++ @u)
                lhs.eyeEx = [] 
                lhs.diff = Var  ("U"++ @u) 
+               lhs.count = 0
+               
 
    | Existential lhs.n2 = []
                 lhs.n1 = []
@@ -214,6 +238,7 @@ sem Term
                 lhs.eye = Var ("E"++ @ex)
                 lhs.eyeEx = ["E"++ @ex]
                 lhs.diff = Var ("E"++ @ex)
+                lhs.count = 0
 
    | URI lhs.n2 = []
               lhs.n1 = []
@@ -224,6 +249,7 @@ sem Term
               lhs.eye = Con ("uri_" ++ @uri)
               lhs.eyeEx = []
               lhs.diff = Con ("uri_" ++ @uri)
+              lhs.count = 0
 
 
    | Literal lhs.n2 = []
@@ -235,6 +261,7 @@ sem Term
               lhs.eye = Con ("l_"++ @l)
               lhs.eyeEx = []
               lhs.diff = Con ("l_"++ @l)
+              lhs.count = 0
     
    | Exp  lhs.n2 = []
           lhs.n1 = @e.n1
@@ -245,6 +272,7 @@ sem Term
           lhs.eyeEx= exception @lhs.varInImpException @lhs.insideQuotation @e.eyeEx
           e.insideQuotation = True
           lhs.diff = CExp @e.diff
+          lhs.count= @e.count
            
 --TODO how to get the transformed values of the elements?
    |List  lhs.n2 = @term.n2 ++ @list.n2
@@ -257,7 +285,9 @@ sem Term
           lhs.eye = CList @term.transformed @list.transformed
           lhs.eyeEx = @term.eyeEx ++ @list.eyeEx
           lhs.diff = CList @term.diff @list.diff      
-           
+          term.c = @lhs.c
+          list.c = @lhs.c
+          lhs.count = max @term.count @list.count
                 
                 
           
@@ -270,6 +300,7 @@ sem Expression
           lhs.eye = CBE @b
           lhs.eyeEx = []
           lhs.diff = CBE @b
+          lhs.count = 0
 
    | FE   lhs.n1 = @f.n2
           f.scope = @lhs.scope `union` @f.n1 
@@ -280,6 +311,8 @@ sem Expression
           lhs.eyeEx = @f.eyeEx
           lhs.diff = CFE (qua [] @f.ex @f.diff)
           f.insideQuotation = True
+          f.c = @lhs.c+1
+          lhs.count =  findDepth (@f.n1 \\ @lhs.scope) (@lhs.c +1) @f.count -- max (@lhs.c+1) @f.count
           
 
 
@@ -358,7 +391,9 @@ quaf [] [] s = s
 quaf [] (a:as) s = "ForSome " ++ a ++ ". " ++ (quaf [] as s)
 quaf (a:as) g s = "ForAll " ++ a ++ ". " ++ (quaf as g s)
 
-
+findDepth :: [String] -> Int -> Int -> Int
+findDepth [] n m = m
+findDepth set n m = max n m
 
 
 
@@ -369,10 +404,10 @@ imp f l = []
 
 --not really pretty, but at least easy
 printTree :: String -> Int -> String 
-printTree ('(':b) n = "\n"++ ( concat (replicate (n+1) "|  ") ) ++ ( printTree b (n+1) ) 
+printTree ('(':b) n = "\n"++ ( concat (replicate (n+1) "|  ") ) ++ ( printTree b (n+1) )
 printTree (')':b) n = ( printTree b (n-1) )
 printTree (s:b)   n  =  (s    : ( printTree b n))
-printTree s       n  =  s
+printTree s       n  =  s 
 
 
 makeTree :: String -> String -> IO()
@@ -448,10 +483,18 @@ compareU fname = do {
                                                               0
                         }
                }
+depth :: String -> IO()
+depth fname =  do {
+               input <- readFile fname
+               ; case runParser mainparser 0 fname input of
+                        { 
+                          Left err -> print err
+                          ; Right ans -> putStrLn $ show (  count_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )
+                        }
+               }
 
-
-compareAll :: String ->  IO ()
-compareAll foname = do {
+compareAll :: String -> String ->  IO ()
+compareAll foname target = do {
                
                 files <- getDirectoryContents foname
                 ; let fs = (drop 2 files)-- I guess I should solve that differently?
@@ -462,40 +505,61 @@ compareAll foname = do {
                -- ; Right ans ->  writeFile "out.txt" $ niceTable (read (show ans)) fname
                                 
                -- }
-               ;   (values, count) <- (readAll foname fs [] [0, 0, 0, 0])
-               ; let table = makeTable fs values count
-               ; writeFile "out.txt" $ ((replicate 40 ' ') ++ "cwm/eye  " ++ "cwm/uni  " ++ "uni/eye \n")++ table
+               --this here is to only consider the files containing the symbol ?, only those can contain universals
+               ;  newfs <- findFilesWithUniversals foname fs []
+               ;   (values, count) <- (readAll foname newfs [] [0, 0, 0, 0])
+               ; let table = makeTable newfs values count
+               ; writeFile target $ ((replicate 40 ' ') ++ "cwm/es2  " ++ "cwm/eye  " ++ "eye/es2  " ++ "depth \n")++ table
                }
 
 
 --readAll :: String -> [String] ->  -> IO() 
-readAll foname [] list [a,b,c,d] = do { 
+readAll foname [] list [a, b, c, d] = do { 
                             return $ ((reverse list), [a,b,c,d])
                             }
 readAll foname fs list [a, b, c, d] = do { 
                          let fname = (head fs)
                          ; input <- readFile $ foname ++ "/"++ fname
-                         ; print (foname ++ "/"++ fname ++ "  " ++ (boolToString (isInfixOf "?" input)) ++"\n")
-                         ; case runParser mainparser 0 fname input of
-                         {
-                         Left  err ->   (readAll foname (tail fs) ( [2, 2, 2 ]:list ) [a, b, c,d] )
-                         ;Right ans -> (\res -> ((\x y z -> (readAll foname (tail fs) (
+                         ; print (foname ++ "/"++ fname ++ " parsed \n" )
+                             
+                                    ;case runParser mainparser 0 fname input of
+                                    {
+                                    Left  err ->   (readAll foname (tail fs) ( [2, 2, 2, 2 ]:list ) [a, b, c, d] )
+                                    ;Right ans -> (\res -> ((\x y z zz zzz -> (readAll foname (tail fs) (
                                                              [x, 
                                                               y, 
-                                                              z
+                                                              z,
+                                                              zz,
+                                                              zzz  
                                                              ]:list ) 
-                                                             [(a+x), (b+y), (c+z), (d+1)]
+                                                             [(a+x), (b+y), (c+z), (d+1) ]
                                                              ) )
                                                              (cwm_and_eye res )
                                                              (cwm_and_diff res)
                                                              (eye_and_diff res)
+                                                             (boolToInt ( (eyeVar_Syn_S (  wrap_S  (sem_S  res) Inh_S   ))==[]))
+                                                             (  count_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )
                                                              ))
                                                              (read (show ans))
-                         }
+                                   }
+                               
+                            
+                            }
                          
-                       }   
+findFilesWithUniversals foname [] newfs = do { return (reverse newfs) }                        
+findFilesWithUniversals foname fs newfs = do {
+                                             let fname = (head fs)
+                                             ; input <- readFile $ foname ++ "/"++ fname
+                                             ; case (isInfixOf "?" input) of
+                                                   {
+                                                   True  -> ( findFilesWithUniversals foname (tail fs) (fname:newfs))
+                                                   ;False -> ( findFilesWithUniversals foname (tail fs) newfs)
+                                                   }
+                                             }
+
+
                        
-                                   
+                                  
 --todo: every parsing only once               
 cwm_and_eye :: S -> Int
 cwm_and_eye f = boolToInt (( (show (  eye_Syn_S  x )) ==  ( show (  transformed_Syn_S x  )  ) ) ) 
@@ -517,8 +581,9 @@ niceTable f fname = (replicate 30 ' ') ++ "cwm/eye  " ++ "cwm/uni  " ++ "uni/eye
 
 makeTable :: [String] -> [[Int]] -> [Int] -> String
 makeTable [] values stat = lastLine stat
-makeTable names values stat = (head names) ++ (replicate (40 - length(head names)) ' ') ++ (concat $ fmap makeEntry (head values)) ++ "\n"
-                         ++ (makeTable (tail names) (tail values) stat)
+makeTable names ([a , b, c , 1, e]:v) [s1, s2, s3, s4] = (makeTable (tail names) v [(s1-a), (s2-b), (s3-c), (s4-1)])
+makeTable names ([a , b, c , d, e]:v) stat = (head names) ++ (replicate (40 - length(head names)) ' ') ++ (concat $ fmap makeEntry [a, b, c, e]) ++ "\n"
+                         ++ (makeTable (tail names) v stat)
 
 
 lastLine :: [Int]-> String
@@ -527,7 +592,7 @@ lastLine [a,b,c, d] = "Absolute Number (from "
                       ++ (replicate(15 - (length(show d))) ' ')
                       ++ (show a) ++ (replicate (9 - (length(show a))) ' ')
                       ++ (show b) ++ (replicate (9 - (length(show b))) ' ')
-                      ++ (show c)
+                      ++ (show c) 
                       ++ "\n"
                       ++ "Percentage: "
                       ++ (show ((fromIntegral a)/(fromIntegral d)))
@@ -573,6 +638,7 @@ exception t    f s = s
 boolToString :: Bool -> String
 boolToString True = "TRUE"
 boolToString False = "FALSE"
+
 
 }
 
