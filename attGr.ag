@@ -28,7 +28,6 @@ data Term
    | URI uri :: String
    | Literal l :: String
    | Exp  e :: Expression
---this seems to be wrong!
    | List term, list :: Term
 
 
@@ -86,6 +85,8 @@ attr S
    syn diff :: CFormula  
 --count how deeply nested universals occur
    syn count :: Int
+--know which variables are the deepest
+   syn deep :: {[String]}
    
 
 attr Formula
@@ -107,6 +108,8 @@ attr Formula
 --count how deeply nested universals occur
    syn count :: Int
    inh c :: Int
+--know which variables are the deepest
+   syn deep :: {[String]}
 
 attr Term
 --Attributes for standard--
@@ -127,6 +130,8 @@ attr Term
 --count how deeply nested universals occur
    syn count :: Int
    inh c :: Int
+--know which variables are the deepest
+   syn deep :: {[String]}
 
 attr Expression
 --Attributes for standard--
@@ -144,6 +149,8 @@ attr Expression
 --count how deeply nested universals occur
    syn count :: Int
    inh c :: Int
+--know which variables are the deepest
+   syn deep :: {[String]}
 
 --Definition   
 --TODO: default value should be empty list
@@ -161,6 +168,7 @@ sem S
                  lhs.diff = qua (sort  @f.eyeVar) @f.ex @f.diff
                  f.c = 1
                  lhs.count = findDepth @f.n1 1 @f.count
+                 lhs.deep = deepest @f.n1 @f.deep
   
 sem Formula
    | Triple lhs.n2 = (@s.n2 `union` @p.n2) `union` @o.n2
@@ -182,6 +190,7 @@ sem Formula
             p.c = @lhs.c
             o.c = @lhs.c
             lhs.count = max @s.count (max @p.count @o.count)
+            lhs.deep = choose @o.deep  (choose @s.deep @p.deep @s.count @p.count) @o.count (max @s.count @p.count)
  
                
    | Implication lhs.n2 = []
@@ -198,6 +207,7 @@ sem Formula
                  e1.c = @lhs.c
                  e2.c = @lhs.c
                  lhs.count = max @e1.count @e2.count
+                 lhs.deep = choose @e1.deep @e2.deep @e1.count @e2.count
 
    | Conjunction lhs.n2 = @c2.n2 `union` @c1.n2
                  lhs.n1 = @c2.n1 `union` @c1.n1
@@ -215,6 +225,7 @@ sem Formula
                  c1.c = @lhs.c
                  c2.c = @lhs.c
                  lhs.count = max @c1.count @c2.count
+                 lhs.deep = choose @c1.deep @c2.deep @c1.count @c2.count
                  
 sem Term
    | Universal lhs.n2 = ["U"++ @u]
@@ -227,6 +238,7 @@ sem Term
                lhs.eyeEx = [] 
                lhs.diff = Var  ("U"++ @u) 
                lhs.count = 0
+               lhs.deep = []
                
 
    | Existential lhs.n2 = []
@@ -239,6 +251,7 @@ sem Term
                 lhs.eyeEx = ["E"++ @ex]
                 lhs.diff = Var ("E"++ @ex)
                 lhs.count = 0
+                lhs.deep = []
 
    | URI lhs.n2 = []
               lhs.n1 = []
@@ -250,7 +263,7 @@ sem Term
               lhs.eyeEx = []
               lhs.diff = Con ("uri_" ++ @uri)
               lhs.count = 0
-
+              lhs.deep = []
 
    | Literal lhs.n2 = []
               lhs.n1 = []
@@ -262,6 +275,7 @@ sem Term
               lhs.eyeEx = []
               lhs.diff = Con ("l_"++ @l)
               lhs.count = 0
+              lhs.deep = []
     
    | Exp  lhs.n2 = []
           lhs.n1 = @e.n1
@@ -273,12 +287,12 @@ sem Term
           e.insideQuotation = True
           lhs.diff = CExp @e.diff
           lhs.count= @e.count
+          lhs.deep = @e.deep
            
---TODO how to get the transformed values of the elements?
-   |List  lhs.n2 = @term.n2 ++ @list.n2
-          lhs.n1 = []
-          lhs.ex = @term.ex ++ @list.ex
-          -- has to be adjusted
+
+   |List  lhs.n2 = @term.n2 `union` @list.n2
+          lhs.n1 = @term.n1 `union` @list.n1
+          lhs.ex = @term.ex `union` @list.ex
           lhs.transformed = CList @term.transformed @list.transformed
           lhs.formula =  "(" ++ @term.formula ++ "," ++ @list.formula ++ ")" 
           lhs.eyeVar = @term.eyeVar ++ @list.eyeVar
@@ -288,7 +302,7 @@ sem Term
           term.c = @lhs.c
           list.c = @lhs.c
           lhs.count = max @term.count @list.count
-                
+          lhs.deep = @term.deep `union` @list.deep      
                 
           
 
@@ -301,6 +315,7 @@ sem Expression
           lhs.eyeEx = []
           lhs.diff = CBE @b
           lhs.count = 0
+          lhs.deep = []
 
    | FE   lhs.n1 = @f.n2
           f.scope = @lhs.scope `union` @f.n1 
@@ -312,8 +327,8 @@ sem Expression
           lhs.diff = CFE (qua [] @f.ex @f.diff)
           f.insideQuotation = True
           f.c = @lhs.c+1
-          lhs.count =  findDepth (@f.n1 \\ @lhs.scope) (@lhs.c +1) @f.count -- max (@lhs.c+1) @f.count
-          
+          lhs.count = findDepth (@f.n1 \\ @lhs.scope) (@lhs.c +1) @f.count -- max (@lhs.c+1) @f.count
+          lhs.deep = deepest (@f.n1 \\ @lhs.scope) @f.deep
 
 
 
@@ -395,6 +410,13 @@ findDepth :: [String] -> Int -> Int -> Int
 findDepth [] n m = m
 findDepth set n m = max n m
 
+deepest :: [String] -> [String]  ->[String]
+deepest new [] = new
+deepest new old = old
+
+choose :: [String] -> [String] -> Int -> Int ->[String]
+choose first second n m = if (n>m) then first
+                          else second
 
 
 
@@ -492,6 +514,17 @@ depth fname =  do {
                           ; Right ans -> putStrLn $ show (  count_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )
                         }
                }
+
+deepvars :: String -> IO()
+deepvars fname =  do {
+               input <- readFile fname
+               ; case runParser mainparser 0 fname input of
+                        { 
+                          Left err -> print err
+                          ; Right ans -> putStrLn $ show (  deep_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )
+                        }
+               }
+
 
 compareAll :: String -> String ->  IO ()
 compareAll foname target = do {
