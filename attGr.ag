@@ -37,6 +37,7 @@ data Expression
 
 deriving S Term Expression Formula: Show
 deriving S Formula Term Expression : Read
+deriving S Formula Term Expression : Eq
 
 
 --Core Grammar
@@ -65,7 +66,7 @@ data CExpression
 
 
 deriving CTerm  CFormula Quant Var CTerm CExpression: Show
-
+deriving CTerm  CFormula Quant Var CTerm CExpression: Eq
 
 
 -- Attributes for N3 Grammar
@@ -557,7 +558,7 @@ readAll foname fs list [a, b, c, d] = do {
                              
                                     ;case runParser mainparser 0 fname input of
                                     {
-                                    Left  err ->   (readAll foname (tail fs) ( [2, 2, 2, 2 ]:list ) [a, b, c, d] )
+                                    Left  err ->   (readAll foname (tail fs) ( [2, 2, 2, 2, 2 ]:list ) [a, b, c, d] )
                                     ;Right ans -> (\res -> ((\x y z zz zzz -> (readAll foname (tail fs) (
                                                              [x, 
                                                               y, 
@@ -595,15 +596,15 @@ findFilesWithUniversals foname fs newfs = do {
                                   
 --todo: every parsing only once               
 cwm_and_eye :: S -> Int
-cwm_and_eye f = boolToInt (( (show (  eye_Syn_S  x )) ==  ( show (  transformed_Syn_S x  )  ) ) ) 
+cwm_and_eye f = boolToInt (   ( eye_Syn_S  x ) ==  (   transformed_Syn_S x  )   ) 
            where x = (  wrap_S  (sem_S  f) Inh_S   )     
                
 cwm_and_diff :: S -> Int
-cwm_and_diff f = boolToInt (( (show (  diff_Syn_S  x )) ==  ( show (  transformed_Syn_S x  )  ) ) ) 
+cwm_and_diff f = boolToInt ((  diff_Syn_S  x ) ==  (   transformed_Syn_S x  )   ) 
            where x = (  wrap_S  (sem_S  f) Inh_S   ) 
 
 eye_and_diff :: S -> Int
-eye_and_diff f = boolToInt (( (show (  diff_Syn_S  x )) ==  ( show (  eye_Syn_S x  )  ) ) ) 
+eye_and_diff f = boolToInt ((   diff_Syn_S  x ) ==  (  eye_Syn_S x   ) )
            where x = (  wrap_S  (sem_S  f) Inh_S   ) 
            
            
