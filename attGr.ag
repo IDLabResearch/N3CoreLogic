@@ -8,8 +8,6 @@ import Data.List
 import Text.Parsec.Prim
 import N3grammar
 import System.Directory
---import Text.PrettyPrint
---import Text.PrettyPrint.HughesPJ
 
 }
 
@@ -335,15 +333,6 @@ sem Expression
 
 {
 
---TODO: pretty print
---TODO: clean up the ugly function!
-{-
-main ::  IO ()
-main = case parse mainparser "" ":a :b :c." of
-              { Left err -> print err
-              ; Right ans -> print (  show (  transformed_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )  )
-              }
--}
 
 
 
@@ -456,7 +445,7 @@ makeTree fname "uni" = do {
                 }
 
 
---really primitive function to compare tree strings, later that comparison should be on tree level
+--simple function to compare tree strings, later that comparison should be on tree level
 compareTree :: String -> String -> String -> Int -> String
 compareTree (x:b) (y:c) s n 
            | (x==y) = compareTree b c (s++[x]) (n+1)
