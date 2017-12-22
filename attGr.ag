@@ -423,7 +423,7 @@ printTree s       n  =  s
 
 
 makeTree :: String -> String -> IO()
-makeTree fname "eye" = do {
+makeTree fname "uni" = do {
                 input <- readFile fname
                 ; case runParser mainparser 0 fname input of
                 { Left err -> print err
@@ -436,7 +436,7 @@ makeTree fname "cwm" = do {
                 ; Right ans -> putStrLn $ printTree  (show  (  transformed_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )) 0
                 }
                 }
-makeTree fname "uni" = do {
+makeTree fname "eye" = do {
                 input <- readFile fname
                 ; case runParser mainparser 0 fname input of
                 { Left err -> print err
