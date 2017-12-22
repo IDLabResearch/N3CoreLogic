@@ -515,6 +515,33 @@ deepvars fname =  do {
                         }
                }
 
+--hasBuiltins :: String -> Int
+hasBuiltins foname [] result = do { return (reverse result) } 
+hasBuiltins foname fs result =
+                    do {
+                        let fname = (head fs)
+                        ; input <- readFile $ foname ++ "/"++ fname
+                        ; case    (isInfixOf " e:" input) 
+                         || (isInfixOf " prolog:" input) 
+                         || (isInfixOf " fn:" input) 
+                         || (isInfixOf " crypto:" input) 
+                         || (isInfixOf " list:" input) 
+                         || (isInfixOf " log:" input) 
+                         || (isInfixOf " math:" input) 
+                         || (isInfixOf " rdf:first" input) 
+                         || (isInfixOf " rdf:rest" input) 
+                         || (isInfixOf " string:" input)
+                         || (isInfixOf " time:" input)
+                         || (isInfixOf " func:" input)
+                         || (isInfixOf " pred:" input)    
+                        of
+                        {
+                         True -> (hasBuiltins foname (tail fs) (1:result))
+                         ; False -> (hasBuiltins foname (tail fs) (0:result))
+                        }
+                  }
+
+
 
 compareAll :: String -> String ->  IO ()
 compareAll foname target = do {
@@ -530,37 +557,40 @@ compareAll foname target = do {
                -- }
                --this here is to only consider the files containing the symbol ?, only those can contain universals
                ;  newfs <- findFilesWithUniversals foname fs []
-               ;   (values, count) <- (readAll foname newfs [] [0, 0, 0, 0])
+               ; builtins <- hasBuiltins foname newfs []
+               ;   (values, count) <- (readAll foname newfs [] [0, 0, 0, 0, 0] builtins)
                ; let table = makeTable newfs values count
-               ; writeFile target $ ((replicate 40 ' ') ++ "cwm/es2  " ++ "cwm/eye  " ++ "eye/es2  " ++ "depth \n")++ table
+               ; writeFile target $ ((replicate 40 ' ') ++ "cwm/es2  " ++ "cwm/eye  " ++ "eye/es2  " ++ "builtins  "++ "depth \n" )++ table
                }
 
 
 --readAll :: String -> [String] ->  -> IO() 
-readAll foname [] list [a, b, c, d] = do { 
-                            return $ ((reverse list), [a,b,c,d])
+readAll foname [] list [a, b, c, d, e] [] = do { 
+                            return $ ((reverse list), [a,b,c,d, e])
                             }
-readAll foname fs list [a, b, c, d] = do { 
+readAll foname fs list [a, b, c, d, e] builtins = do { 
                          let fname = (head fs)
                          ; input <- readFile $ foname ++ "/"++ fname
-                         ; print (foname ++ "/"++ fname ++ " parsed \n" )
-                             
+                         ; print (foname ++ "/"++ fname ++ " parsed \n" )  
                                     ;case runParser mainparser 0 fname input of
                                     {
-                                    Left  err ->   (readAll foname (tail fs) ( [2, 2, 2, 2, 2 ]:list ) [a, b, c, d] )
-                                    ;Right ans -> (\res -> ((\x y z zz zzz -> (readAll foname (tail fs) (
+                                    Left  err ->   (readAll foname (tail fs) ( [2, 2, 2, 2, 2, 2 ]:list ) [a, b, c, d, e] (tail builtins))
+                                    ;Right ans -> (\res -> ((\x y z zz zzzz zzz -> (readAll foname (tail fs) (
                                                              [x, 
                                                               y, 
                                                               z,
                                                               zz,
+                                                              zzzz,
                                                               zzz  
                                                              ]:list ) 
-                                                             [(a+x), (b+y), (c+z), (d+1) ]
+                                                             [(a+x), (b+y), (c+z), (d+1), (e+zzzz) ]
+                                                             (tail builtins)
                                                              ) )
                                                              (cwm_and_eye res )
                                                              (cwm_and_diff res)
                                                              (eye_and_diff res)
                                                              (boolToInt ( (eyeVar_Syn_S (  wrap_S  (sem_S  res) Inh_S   ))==[]))
+                                                             (head builtins)
                                                              (  count_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )
                                                              ))
                                                              (read (show ans))
@@ -604,13 +634,13 @@ niceTable f fname = (replicate 30 ' ') ++ "cwm/eye  " ++ "cwm/uni  " ++ "uni/eye
 
 makeTable :: [String] -> [[Int]] -> [Int] -> String
 makeTable [] values stat = lastLine stat
-makeTable names ([a , b, c , 1, e]:v) [s1, s2, s3, s4] = (makeTable (tail names) v [(s1-a), (s2-b), (s3-c), (s4-1)])
-makeTable names ([a , b, c , d, e]:v) stat = (head names) ++ (replicate (40 - length(head names)) ' ') ++ (concat $ fmap makeEntry [a, b, c, e]) ++ "\n"
+makeTable names ([a , b, c , 1, e1, e]:v) [s1, s2, s3, s4, s5] = (makeTable (tail names) v [(s1-a), (s2-b), (s3-c), (s4-1),(s5-e1)])
+makeTable names ([a , b, c , d, e1, e]:v) stat = (head names) ++ (replicate (40 - length(head names)) ' ') ++ (concat $ fmap makeEntry [a, b, c, e1,  e ]) ++ "\n"
                          ++ (makeTable (tail names) v stat)
 
 
 lastLine :: [Int]-> String
-lastLine [a,b,c, d] = "Absolute Number (from " 
+lastLine [a,b,c, d, e] = "Absolute Number (from " 
                       ++ (show d) ++ "): " 
                       ++ (replicate(15 - (length(show d))) ' ')
                       ++ (show a) ++ (replicate (9 - (length(show a))) ' ')
@@ -623,6 +653,8 @@ lastLine [a,b,c, d] = "Absolute Number (from "
                       ++ (show $ (fromIntegral b)/(fromIntegral d))
                       ++ " "
                       ++ (show $ (fromIntegral c)/(fromIntegral d))
+                      ++ " "
+                      ++ (show $ (fromIntegral e)/(fromIntegral d))
  
 makeEntry :: Int -> String 
 makeEntry n = (show n) ++ (replicate 8 ' ')
