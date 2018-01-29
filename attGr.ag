@@ -8,6 +8,7 @@ import Data.List
 import Text.Parsec.Prim
 import N3grammar
 import System.Directory
+import Data.Text (pack, count)
 
 }
 
@@ -86,6 +87,8 @@ attr S
    syn count :: Int
 --know which variables are the deepest
    syn deep :: {[String]}
+--atrribute to find builtins
+   syn be :: Int
    
 
 attr Formula
@@ -109,6 +112,8 @@ attr Formula
    inh c :: Int
 --know which variables are the deepest
    syn deep :: {[String]}
+--atrribute to find builtins
+   syn be :: Int
 
 attr Term
 --Attributes for standard--
@@ -131,6 +136,8 @@ attr Term
    inh c :: Int
 --know which variables are the deepest
    syn deep :: {[String]}
+--atrribute to find builtins
+   syn be :: Int
 
 attr Expression
 --Attributes for standard--
@@ -150,6 +157,8 @@ attr Expression
    inh c :: Int
 --know which variables are the deepest
    syn deep :: {[String]}
+--atrribute to find builtins
+   syn be :: Int
 
 --Definition   
 --TODO: default value should be empty list
@@ -168,6 +177,7 @@ sem S
                  f.c = 1
                  lhs.count = findDepth @f.n1 1 @f.count
                  lhs.deep = deepest @f.n1 @f.deep
+                 lhs.be = @f.be
   
 sem Formula
    | Triple lhs.n2 = (@s.n2 `union` @p.n2) `union` @o.n2
@@ -190,6 +200,7 @@ sem Formula
             o.c = @lhs.c
             lhs.count = max @s.count (max @p.count @o.count)
             lhs.deep = choose @o.deep  (choose @s.deep @p.deep @s.count @p.count) @o.count (max @s.count @p.count)
+            lhs.be = maximum [@s.be, @p.be, @o.be]
  
                
    | Implication lhs.n2 = []
@@ -207,6 +218,7 @@ sem Formula
                  e2.c = @lhs.c
                  lhs.count = max @e1.count @e2.count
                  lhs.deep = choose @e1.deep @e2.deep @e1.count @e2.count
+                 lhs.be =  maximum [@e1.be, @e2.be]
 
    | Conjunction lhs.n2 = @c2.n2 `union` @c1.n2
                  lhs.n1 = @c2.n1 `union` @c1.n1
@@ -225,6 +237,7 @@ sem Formula
                  c2.c = @lhs.c
                  lhs.count = max @c1.count @c2.count
                  lhs.deep = choose @c1.deep @c2.deep @c1.count @c2.count
+                 lhs.be = maximum [@c1.be, @c2.be]
                  
 sem Term
    | Universal lhs.n2 = ["U"++ @u]
@@ -238,6 +251,7 @@ sem Term
                lhs.diff = Var  ("U"++ @u) 
                lhs.count = 0
                lhs.deep = []
+               lhs.be = 0
                
 
    | Existential lhs.n2 = []
@@ -251,6 +265,7 @@ sem Term
                 lhs.diff = Var ("E"++ @ex)
                 lhs.count = 0
                 lhs.deep = []
+                lhs.be = 0
 
    | URI lhs.n2 = []
               lhs.n1 = []
@@ -263,6 +278,7 @@ sem Term
               lhs.diff = Con ("uri_" ++ @uri)
               lhs.count = 0
               lhs.deep = []
+              lhs.be =  isBuiltIn @uri
 
    | Literal lhs.n2 = []
               lhs.n1 = []
@@ -275,6 +291,7 @@ sem Term
               lhs.diff = Con ("l_"++ @l)
               lhs.count = 0
               lhs.deep = []
+              lhs.be = 0
     
    | Exp  lhs.n2 = []
           lhs.n1 = @e.n1
@@ -287,6 +304,7 @@ sem Term
           lhs.diff = CExp @e.diff
           lhs.count= @e.count
           lhs.deep = @e.deep
+          lhs.be = @e.be
            
 
    |List  lhs.n2 = @term.n2 `union` @list.n2
@@ -301,7 +319,8 @@ sem Term
           term.c = @lhs.c
           list.c = @lhs.c
           lhs.count = max @term.count @list.count
-          lhs.deep = @term.deep `union` @list.deep      
+          lhs.deep = @term.deep `union` @list.deep 
+          lhs.be = 0     
                 
           
 
@@ -315,6 +334,7 @@ sem Expression
           lhs.diff = CBE @b
           lhs.count = 0
           lhs.deep = []
+          lhs.be = 0
 
    | FE   lhs.n1 = @f.n2
           f.scope = @lhs.scope `union` @f.n1 
@@ -328,6 +348,7 @@ sem Expression
           f.c = @lhs.c+1
           lhs.count = findDepth (@f.n1 \\ @lhs.scope) (@lhs.c +1) @f.count -- max (@lhs.c+1) @f.count
           lhs.deep = deepest (@f.n1 \\ @lhs.scope) @f.deep
+          lhs.be = @f.be
 
 
 
@@ -515,25 +536,26 @@ deepvars fname =  do {
                         }
                }
 
+
 --hasBuiltins :: String -> Int
 hasBuiltins foname [] result = do { return (reverse result) } 
 hasBuiltins foname fs result =
                     do {
                         let fname = (head fs)
                         ; input <- readFile $ foname ++ "/"++ fname
-                        ; case    (isInfixOf " e:" input) 
-                         || (isInfixOf " prolog:" input) 
-                         || (isInfixOf " fn:" input) 
-                         || (isInfixOf " crypto:" input) 
-                         || (isInfixOf " list:" input) 
-                         || (isInfixOf " log:" input) 
-                         || (isInfixOf " math:" input) 
+                        ; case   ( (count (pack ("e:")) (pack input) ) > 1) 
+                         || ( (count (pack ("prolog:")) (pack input) ) > 1) 
+                         || ( (count (pack ("fn:")) (pack input) ) > 1)  
+                         || ( (count (pack ("crypto:")) (pack input) ) > 1) 
+                         || ( (count (pack ("list:")) (pack input) ) > 1) 
+                         || ( (count (pack ("log:")) (pack input) ) > 1)  
+                         || ( (count (pack ("math:")) (pack input) ) > 1) 
                          || (isInfixOf " rdf:first" input) 
                          || (isInfixOf " rdf:rest" input) 
-                         || (isInfixOf " string:" input)
-                         || (isInfixOf " time:" input)
-                         || (isInfixOf " func:" input)
-                         || (isInfixOf " pred:" input)    
+                         || ( (count (pack ("string:")) (pack input) ) > 1) 
+                         || ( (count (pack ("time:")) (pack input) ) > 1) 
+                         || ( (count (pack ("func:")) (pack input) ) > 1) 
+                         || ( (count (pack ("pred:")) (pack input) ) > 1) 
                         of
                         {
                          True -> (hasBuiltins foname (tail fs) (1:result))
@@ -557,24 +579,24 @@ compareAll foname target = do {
                -- }
                --this here is to only consider the files containing the symbol ?, only those can contain universals
                ;  newfs <- findFilesWithUniversals foname fs []
-               ; builtins <- hasBuiltins foname newfs []
-               ;   (values, count) <- (readAll foname newfs [] [0, 0, 0, 0, 0] builtins)
+               --; builtins <- hasBuiltins foname newfs []
+               ;   (values, count) <- (readAll foname newfs [] [0, 0, 0, 0, 0])
                ; let table = makeTable newfs values count
                ; writeFile target $ ((replicate 40 ' ') ++ "cwm/es2  " ++ "cwm/eye  " ++ "eye/es2  " ++ "builtins  "++ "depth \n" )++ table
                }
 
 
 --readAll :: String -> [String] ->  -> IO() 
-readAll foname [] list [a, b, c, d, e] [] = do { 
+readAll foname [] list [a, b, c, d, e] = do { 
                             return $ ((reverse list), [a,b,c,d, e])
                             }
-readAll foname fs list [a, b, c, d, e] builtins = do { 
+readAll foname fs list [a, b, c, d, e]  = do { 
                          let fname = (head fs)
                          ; input <- readFile $ foname ++ "/"++ fname
                          ; print (foname ++ "/"++ fname ++ " parsed \n" )  
                                     ;case runParser mainparser 0 fname input of
                                     {
-                                    Left  err ->   (readAll foname (tail fs) ( [2, 2, 2, 2, 2, 2 ]:list ) [a, b, c, d, e] (tail builtins))
+                                    Left  err ->   (readAll foname (tail fs) ( [2, 2, 2, 2, 2, 2 ]:list ) [a, b, c, d, e] )
                                     ;Right ans -> (\res -> ((\x y z zz zzzz zzz -> (readAll foname (tail fs) (
                                                              [x, 
                                                               y, 
@@ -584,13 +606,12 @@ readAll foname fs list [a, b, c, d, e] builtins = do {
                                                               zzz  
                                                              ]:list ) 
                                                              [(a+x), (b+y), (c+z), (d+1), (e+zzzz) ]
-                                                             (tail builtins)
                                                              ) )
                                                              (cwm_and_eye res )
                                                              (cwm_and_diff res)
                                                              (eye_and_diff res)
                                                              (boolToInt ( (eyeVar_Syn_S (  wrap_S  (sem_S  res) Inh_S   ))==[]))
-                                                             (head builtins)
+                                                             (be_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  ))
                                                              (  count_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )
                                                              ))
                                                              (read (show ans))
@@ -645,7 +666,8 @@ lastLine [a,b,c, d, e] = "Absolute Number (from "
                       ++ (replicate(15 - (length(show d))) ' ')
                       ++ (show a) ++ (replicate (9 - (length(show a))) ' ')
                       ++ (show b) ++ (replicate (9 - (length(show b))) ' ')
-                      ++ (show c) 
+                      ++ (show c) ++ (replicate (9 - (length(show c))) ' ')
+                      ++ (show e) 
                       ++ "\n"
                       ++ "Percentage: "
                       ++ (show ((fromIntegral a)/(fromIntegral d)))
@@ -694,6 +716,258 @@ boolToString :: Bool -> String
 boolToString True = "TRUE"
 boolToString False = "FALSE"
 
+isBuiltIn :: String -> Int
+isBuiltIn string 
+          | elem string builtinlist = 1
+          | isPrefixOf "prolog:" string = 1
+          | otherwise = 0
+
+builtinlist = ["e:avg",
+                "e:becomes",
+                "e:biconditional", 
+                "e:binaryEntropy", 
+                "e:calculate", 
+                "e:call", 
+                "e:cartesianProduct", 
+                "e:compoundTerm", 
+                "e:cov", 
+                "e:csvTuple", 
+                "e:derive", 
+                "e:fail",
+                "e:finalize",
+                "e:findall",
+                "e:firstRest",
+                "e:format",
+                "e:graphCopy",
+                "e:graphDifference",
+                "e:graphIntersection",
+                "e:graphList",
+                "e:graphMember",
+                "e:graphPair",
+                "e:hmac-sha",
+                "e:ignore",
+                "e:label",
+                "e:labelvars",
+                "e:length",
+                "e:match",
+                "e:max",
+                "e:min",
+                "e:multisetEqualTo",
+                "e:multisetNotEqualTo",
+                "e:notLabel",
+                "e:numeral",
+                "e:optional",
+                "e:pcc",
+                "e:prefix",
+                "e:propertyChainExtension",
+                "e:random",
+                "e:relabel",
+                "e:rms",
+                "e:roc",
+                "e:roots",
+                "e:sha",
+                "e:sigmoid",
+                "e:skolem",
+                "e:sort",
+                "e:std",
+                "e:stringEscape",
+                "e:stringReverse",
+                "e:stringSplit",
+                "e:subsequence",
+                "e:trace",
+                "e:transaction",
+                "e:transpose",
+                "e:tripleList",
+                "e:tuple",
+                "e:unique",
+                "e:whenGround",
+                "e:wwwFormEncode",
+                "crypto:sha",
+                "list:append",
+                "list:first",
+                "list:in",
+                "list:last",
+                "list:member",
+                "list:rest",
+                "log:conclusion",
+                "log:conjunction",
+                "log:dtlit",
+                "log:equalTo",
+                "log:implies",
+                "log:includes",
+                "log:notEqualTo",
+                "log:notIncludes",
+                "log:outputString",
+                "log:rawType",
+                "log:semantics",
+                "log:uri",
+                "math:absoluteValue",
+                "math:atan2",
+                "math:cos",
+                "math:cosh",
+                "math:degrees",
+                "math:difference",
+                "math:equalTo",
+                "math:exponentiation",
+                "math:greaterThan",
+                "math:integerQuotient",
+                "math:lessThan",
+                "math:memberCount",
+                "math:negation",
+                "math:notEqualTo",
+                "math:notGreaterThan",
+                "math:notLessThan",
+                "math:product",
+                "math:quotient",
+                "math:remainder",
+                "math:rounded",
+                "math:sin",
+                "math:sinh",
+                "math:sum",
+                "math:tan",
+                "math:tanh",
+                "rdf:first",
+                "rdf:rest",
+                "string:concatenation",
+                "string:contains",
+                "string:containsIgnoringCase",
+                "string:endsWith",
+                "string:equalIgnoringCase",
+                "string:greaterThan",
+                "string:lessThan",
+                "string:matches",
+                "string:notEqualIgnoringCase",
+                "string:notGreaterThan",
+                "string:notLessThan",
+                "string:notMatches",
+                "string:replace",
+                "string:scrape",
+                "string:search",
+                "string:startsWith",
+                "time:day",
+                "time:month",
+                "time:year",
+                "pred:literal-not-identical",
+                "pred:iri-string",
+                "pred:numeric-equal",
+                "pred:numeric-less-than",
+                "pred:numeric-greater-than",
+                "pred:numeric-not-equal",
+                "pred:numeric-less-than-or-equal",
+                "pred:numeric-greater-than-or-equal",
+                "func:not",
+                "pred:boolean-equal",
+                "pred:boolean-less-than",
+                "pred:boolean-greater-than",
+                "func:compare",
+                "func:concat",
+                "func:string-join",
+                "func:substring",
+                "func:string-length",
+                "func:upper-case",
+                "func:lower-case",
+                "func:encode-for-uri",
+                "func:substring-before",
+                "func:substring-after",
+                "pred:contains",
+                "pred:starts-with",
+                "pred:ends-with",
+                "pred:matches",
+                "func:year-from-dateTime",
+                "func:month-from-dateTime",
+                "func:day-from-dateTime",
+                "func:hours-from-dateTime",
+                "func:minutes-from-dateTime",
+                "func:seconds-from-dateTime",
+                "func:year-from-date",
+                "func:month-from-date",
+                "func:day-from-date",
+                "func:hours-from-time",
+                "func:minutes-from-time",
+                "func:seconds-from-time",
+                "func:years-from-duration",
+                "func:months-from-duration",
+                "func:days-from-duration",
+                "func:hours-from-duration",
+                "func:minutes-from-duration",
+                "func:seconds-from-duration",
+                "func:timezone-from-dateTime",
+                "func:timezone-from-date",
+                "func:timezone-from-time",
+                "func:subtract-dateTimes",
+                "func:subtract-dates",
+                "func:subtract-times",
+                "func:add-yearMonthDurations",
+                "func:subtract-yearMonthDurations",
+                "func:multiply-yearMonthDuration",
+                "func:divide-yearMonthDuration",
+                "func:divide-yearMonthDuration-by-yearMonthDuration",
+                "func:add-dayTimeDurations",
+                "func:subtract-dayTimeDurations",
+                "func:multiply-dayTimeDuration",
+                "func:divide-dayTimeDuration",
+                "func:divide-dayTimeDuration-by-dayTimeDuration",
+                "func:add-yearMonthDuration-to-dateTime",
+                "func:add-yearMonthDuration-to-date",
+                "func:add-dayTimeDuration-to-dateTime",
+                "func:add-dayTimeDuration-to-date",
+                "func:add-dayTimeDuration-to-time",
+                "func:subtract-yearMonthDuration-from-dateTime",
+                "func:subtract-yearMonthDuration-from-date",
+                "func:subtract-dayTimeDuration-from-dateTime",
+                "func:subtract-dayTimeDuration-from-date",
+                "func:subtract-dayTimeDuration-from-time",
+                "pred:dateTime-equal",
+                "pred:dateTime-less-than",
+                "pred:dateTime-greater-than",
+                "pred:date-equal",
+                "pred:date-less-than",
+                "pred:date-greater-than",
+                "pred:time-equal",
+                "pred:time-less-than",
+                "pred:time-greater-than",
+                "pred:duration-equal",
+                "pred:dayTimeDuration-less-than",
+                "pred:dayTimeDuration-greater-than",
+                "pred:yearMonthDuration-less-than",
+                "pred:yearMonthDuration-greater-than",
+                "pred:dateTime-not-equal",
+                "pred:dateTime-less-than-or-equal",
+                "pred:dateTime-greater-than-or-equal",
+                "pred:date-not-equal",
+                "pred:date-less-than-or-equal",
+                "pred:date-greater-than-or-equal",
+                "pred:time-not-equal",
+                "pred:time-less-than-or-equal",
+                "pred:time-greater-than-or-equal",
+                "pred:duration-not-equal",
+                "pred:dayTimeDuration-less-than-or-equal",
+                "pred:dayTimeDuration-greater-than-or-equal",
+                "pred:yearMonthDuration-less-than-or-equal",
+                "pred:yearMonthDuration-greater-than-or-equal",
+                "func:PlainLiteral-from-string-lang",
+                "func:string-from-PlainLiteral",
+                "func:lang-from-PlainLiteral",
+                "func:PlainLiteral-compare",
+                "func:PlainLiteral-length",
+                "pred:matches-language-range",
+                "pred:is-list",
+                "pred:list-contains",
+                "func:make-list",
+                "func:count",
+                "func:get",
+                "func:sublist",
+                "func:append",
+                "func:concatenate",
+                "func:insert-before",
+                "func:remove",
+                "func:reverse",
+                "func:index-of",
+                "func:union",
+                "func:distinct-values",
+                "func:intersect",
+                "func:except"
+                ]
 
 }
 
