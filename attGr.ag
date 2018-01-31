@@ -95,6 +95,7 @@ attr S
    syn proof :: Int
 -- builtin with formula expression
    syn bwfe :: Int
+   syn biscope :: {[String]}
    
 
 attr Formula
@@ -126,6 +127,7 @@ attr Formula
    syn proof :: Int
 -- builtin with formula expression
    syn bwfe :: Int
+   syn biscope :: {[String]}
 
 
 attr Term
@@ -157,6 +159,7 @@ attr Term
    syn proof :: Int
 -- builtin with formula expression
    syn bwfe :: Int
+   syn biscope :: {[String]}
 
 
 attr Expression
@@ -185,6 +188,7 @@ attr Expression
    syn proof :: Int
 -- builtin with formula expression
    syn bwfe :: Int
+   syn biscope :: {[String]}
 
 
 --Definition   
@@ -208,6 +212,7 @@ sem S
                  lhs.cb = @f.cb
                  lhs.proof = @f.proof
                  lhs.bwfe = @f.bwfe
+                 lhs.biscope = []
   
 sem Formula
    | Triple lhs.n2 = (@s.n2 `union` @p.n2) `union` @o.n2
@@ -233,7 +238,8 @@ sem Formula
             lhs.be = maximum [@s.be, @p.be, @o.be]
             lhs.cb = maximum [@s.cb, @p.cb, @o.cb]
             lhs.proof = @o.proof
-            lhs.bwfe = builtinWithNesting @p.be @s.bwfe @o.bwfe
+            lhs.bwfe = maximum [ @p.bwfe, @s.bwfe, @o.bwfe]
+            lhs.biscope = universalsInBuiltins @p.be (@s.n1  `union` @o.n1) ((@s.biscope `union` @p.biscope) `union` @o.biscope)
  
                
    | Implication lhs.n2 = []
@@ -255,6 +261,7 @@ sem Formula
                  lhs.cb = maximum [@e1.cb, @e2.cb]
                  lhs.proof = 0
                  lhs.bwfe = maximum [@e1.bwfe, @e2.bwfe ]
+                 lhs.biscope = @e2.biscope `union` @e1.biscope
 
    | Conjunction lhs.n2 = @c2.n2 `union` @c1.n2
                  lhs.n1 = @c2.n1 `union` @c1.n1
@@ -277,6 +284,7 @@ sem Formula
                  lhs.cb = maximum [@c1.cb, @c2.cb]
                  lhs.proof = maximum [@c1.proof, @c2.proof]
                  lhs.bwfe = maximum [@c1.bwfe, @c2.bwfe ]
+                 lhs.biscope = @c2.biscope `union` @c1.biscope
                  
 sem Term
    | Universal lhs.n2 = ["U"++ @u]
@@ -294,6 +302,7 @@ sem Term
                lhs.cb = 0
                lhs.proof = 0 
                lhs.bwfe = 0
+               lhs.biscope = []
                
 
    | Existential lhs.n2 = []
@@ -311,6 +320,7 @@ sem Term
                 lhs.cb = 0
                 lhs.proof = 0
                 lhs.bwfe = 0
+                lhs.biscope = []
 
    | URI lhs.n2 = []
               lhs.n1 = []
@@ -327,6 +337,7 @@ sem Term
               lhs.cb = 0
               lhs.proof = isProof @uri
               lhs.bwfe = 0
+              lhs.biscope = []
 
    | Literal lhs.n2 = []
               lhs.n1 = []
@@ -342,7 +353,8 @@ sem Term
               lhs.be = 0
               lhs.cb = 0
               lhs.proof = 0
-              lhs.bwfe = 0
+              lhs.bwfe = 0 
+              lhs.biscope = []
     
    | Exp  lhs.n2 = []
           lhs.n1 = @e.n1
@@ -359,6 +371,7 @@ sem Term
           lhs.cb = @e.cb
           lhs.proof = 0
           lhs.bwfe = @e.bwfe
+          lhs.biscope = @e.biscope
            
 
    |List  lhs.n2 = @term.n2 `union` @list.n2
@@ -377,7 +390,8 @@ sem Term
           lhs.be = 0
           lhs.cb = maximum [@term.cb, @list.cb]     
           lhs.proof = 0   
-          lhs.bwfe =  maximum [@term.bwfe, @list.bwfe]    
+          lhs.bwfe =  maximum [@term.bwfe, @list.bwfe] 
+          lhs.biscope = @term.biscope `union` @list.biscope  
           
 
 sem Expression
@@ -394,6 +408,7 @@ sem Expression
           lhs.cb = 0
           lhs.proof = 0
           lhs.bwfe = 0
+          lhs.biscope = []
 
    | FE   lhs.n1 = @f.n2
           f.scope = @lhs.scope `union` @f.n1 
@@ -410,7 +425,8 @@ sem Expression
           lhs.be = @f.be
           lhs.cb = @f.cb + 1
           lhs.proof = 0
-          lhs.bwfe =  b @f.bwfe
+          lhs.bwfe =  b @f.bwfe (@f.biscope \\ @lhs.scope)
+          lhs.biscope = []
 
 
 
@@ -642,47 +658,52 @@ compareAll foname target = do {
                --this here is to only consider the files containing the symbol ?, only those can contain universals
                ;  newfs <- findFilesWithUniversals foname fs []
                --; builtins <- hasBuiltins foname newfs []
-               ;   (values, count) <- (readAll foname newfs [] [0, 0, 0, 0, 0])
+               ;   (values, count) <- (readAll foname newfs [] [0, 0, 0, 0, 0,0,0,0, 0, 0])
                ; let table = makeTable newfs values count
-               ; writeFile target $ ((replicate 40 ' ') ++ "cwm/es2  " ++ "cwm/eye  " ++ "eye/es2  " ++ "builtins  "++ "depth  " ++ "nested " ++ "reason \n" )++ table
+               ; writeFile target $ ((replicate 40 ' ') ++ "cwm/es2  " ++ "cwm/eye  " ++ "eye/es2  " ++ "builtin " ++ "proof  "++ "nested "++ "depth  " ++ "reason \n" )++ table
                }
 
 
 --readAll :: String -> [String] ->  -> IO() 
-readAll foname [] list [a, b, c, d, e] = do { 
-                            return $ ((reverse list), [a,b,c,d, e])
+readAll foname [] list [a, b, c, d, e, r1, r2, r3, ne, pc ] = do { 
+                            return $ ((reverse list), [a,b,c,d, e, r1 , r2, r3, ne, pc])
                             }
-readAll foname fs list [a, b, c, d, e]  = do { 
+readAll foname fs list [a, b, c, d, e, r1, r2, r3, ne, pc]  = do { 
                          let fname = (head fs)
                          ; input <- readFile $ foname ++ "/"++ fname
                          ; print (foname ++ "/"++ fname ++ " parsed \n" )  
                                     ;case runParser mainparser 0 fname input of
                                     {
-                                    Left  err ->   (readAll foname (tail fs) ( [9,9,9,9,9,9,9,9 ]:list ) [a, b, c, d, e] )
+                                    Left  err ->   (readAll foname (tail fs) ( [9,9,9,9,9,9,9,9, 9 ]:list ) [a, b, c, d, e, r1, r2, r3, ne, pc] )
                                     ;Right ans -> case ((  eyeVar_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )== []) of
                                                     {
-                                                     True -> (readAll foname (tail fs) ( [9,9,9,9,9,9,9,9 ]:list ) [a, b, c, d, e] )
+                                                     True -> (readAll foname (tail fs) ( [9,9,9,9,9,9,9,9 ]:list ) [a, b, c, d, e, r1, r2, r3, ne, pc] )
                                                      ; False ->
-                                                         (\res -> ((\x y z zz zzzz zzz ff  -> (readAll foname (tail fs) (
+                                                         (\res -> ((\x y z zz zzzz proof zzz ff r  -> (readAll foname (tail fs) (
                                                              [x, 
                                                               y, 
                                                               z,
                                                               zz,
                                                               zzzz,
-                                                              zzz,
-                                                              ff ,
-                                                              (reason y (  proof_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )  zzz (  bwfe_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  ) ) 
+                                                              proof,
+                                                              ff,
+                                                              zzz ,
+                                                              r
                                                              ]:list ) 
-                                                             [(a+x), (b+y), (c+z), (d+1), (e+zzzz) ]
+                                                             [(a+x), (b+y), (c+z), (d+1), (e+zzzz), (countR1 r1 r), (countR2 r2 r), ( countR3 r3 r), (countBI ne ff), pc + proof ]
                                                              ) )
                                                              (cwm_and_eye res )
                                                              (cwm_and_diff res)
                                                              (eye_and_diff res)
                                                              (boolToInt ( (eyeVar_Syn_S (  wrap_S  (sem_S  res) Inh_S   ))==[]))
                                                              (be_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  ))
+                                                             (proof_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  ))
                                                              (  count_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )
                                                              (  cb_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )
-                                                             ))
+                                                             )
+                                                           --r
+                                                           (reason (cwm_and_diff res) (  proof_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )  (  count_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  ) (  bwfe_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  ) ) 
+                                                           )
                                                              (read (show ans))
                                       }
                                    }
@@ -725,19 +746,22 @@ niceTable f fname = (replicate 30 ' ') ++ "cwm/eye  " ++ "cwm/uni  " ++ "uni/eye
 
 makeTable :: [String] -> [[Int]] -> [Int] -> String
 makeTable [] values stat = lastLine stat
-makeTable names ([a , b, c , 1, e1, e, f, r]:v) [s1, s2, s3, s4, s5, s6 , s7] = (makeTable (tail names) v [(s1-a), (s2-b), (s3-c), (s4-1),(s5-e1)])
-makeTable names ([a , b, c , d, e1, e, f, r]:v) stat = (head names) ++ (replicate (40 - length(head names)) ' ') ++ (concat $ fmap makeEntry [a, b, c, e1,  e, f , r]) ++ "\n"
+makeTable names ([a , b, c , 1, e1, e, f, r, p]:v) [s1, s2, s3, s4, s5, s6 , s7] = (makeTable (tail names) v [(s1-a), (s2-b), (s3-c), (s4-1),(s5-e1)])
+makeTable names ([a , b, c , d, e1, e, f, r, p]:v) stat = (head names) ++ (replicate (40 - length(head names)) ' ') ++ (concat $ fmap makeEntry [a, b, c, e1,  e, f , r, p]) ++ "\n"
                          ++ (makeTable (tail names) v stat)
 
 
 lastLine :: [Int]-> String
-lastLine [a,b,c, d, e] = "Absolute Number (from " 
+lastLine [a,b,c, d, e, r1, r2, r3, bi, pc] = "----------------------------------------------------------------------------------------------------" ++ "\n"
+                      ++ "Absolute Number (from " 
                       ++ (show d) ++ "): " 
                       ++ (replicate(15 - (length(show d))) ' ')
                       ++ (show a) ++ (replicate (9 - (length(show a))) ' ')
                       ++ (show b) ++ (replicate (9 - (length(show b))) ' ')
                       ++ (show c) ++ (replicate (9 - (length(show c))) ' ')
-                      ++ (show e) 
+                      ++ (show e) ++ (replicate (9 - (length(show e))) ' ')
+                      ++ (show pc) ++ (replicate (9 - (length(show pc))) ' ')
+                      ++ (show bi) ++ (replicate (9 - (length(show bi))) ' ')
                       ++ "\n"
                       ++ "Percentage: "
                       ++ (show ((fromIntegral a)/(fromIntegral d)))
@@ -747,6 +771,18 @@ lastLine [a,b,c, d, e] = "Absolute Number (from "
                       ++ (show $ (fromIntegral c)/(fromIntegral d))
                       ++ " "
                       ++ (show $ (fromIntegral e)/(fromIntegral d))
+                      ++ " "
+                      ++ (show $ (fromIntegral pc)/(fromIntegral d))
+                      ++ " "
+                      ++ (show $ (fromIntegral bi)/(fromIntegral d))
+                      ++ "\n" ++ "\n"
+                      ++ "Distribution of Errors in EYE vs. CWM" ++ "\n"
+                      ++ "Nesting:  " ++ (show r1) ++ " (absolut) "
+                      ++ (show $ (fromIntegral r1)/(fromIntegral d)) ++ " (from all files) " ++ (show $ (fromIntegral r1)/(fromIntegral (d - b) )) ++ " (from differences) " ++ "\n"
+                      ++ "Proof:  " ++ (show r2) ++ " (absolut) "
+                      ++ (show $ (fromIntegral r2)/(fromIntegral d)) ++ " (from all files) " ++ (show $ (fromIntegral r2)/(fromIntegral (d - b) )) ++ " (from differences) " ++ "\n"
+                      ++ "Builtins:  " ++ (show r3) ++ " (absolut) "
+                      ++ (show $ (fromIntegral r3)/(fromIntegral d)) ++ " (from all files) " ++ (show $ (fromIntegral r3)/(fromIntegral (d - b) )) ++ " (from differences) " ++ "\n"
  
 makeEntry :: Int -> String 
 makeEntry n = (show n) ++ (replicate 8 ' ')
@@ -1049,22 +1085,38 @@ reason :: Int -> Int -> Int -> Int -> Int
 -- "no problem" = 0,  "nesting" = 1, "proof" = 2, "builtin" = 3
 reason 1 n1 n2 n3 = 0
 reason 0 n1 n2 n3
-       | (n3 > 1)  = 3
+       | (n3 > 0)  = 3
        | (n1 == 1) && (n2 > 2) = 1
        | (n1 == 1) = 2
-       | otherwise = 99
+       | otherwise = 1
  
-builtinWithNesting :: Int -> Int -> Int -> Int 
-builtinWithNesting 0 2 b = 2  
-builtinWithNesting 0 a 2 = 2    
-builtinWithNesting 0 a b = 0
-builtinWithNesting x 1 b = 2
-builtinWithNesting x a 1 = 2
-builtinWithNesting x a b = 0
 
-b :: Int -> Int
-b 0 = 1
-b n = n 
+
+b :: Int -> [String] -> Int
+b 0 [] = 0
+b n  set = 1 
+
+
+-- universalsInBuiltins @p.be @lhs.n2 ((@s.biscope `union` @p.biscope) `union` @o.biscope)
+universalsInBuiltins :: Int -> [String] -> [String] -> [String]
+universalsInBuiltins 0 s1 s2 = s2
+universalsInBuiltins 1 s1 s2 = (s1 `union` s2) 
+
+countR1 :: Int -> Int -> Int
+countR1 r1 1 = r1 + 1
+countR1 r1 r = r1
+
+countR2 :: Int -> Int -> Int
+countR2 r2 2 = r2 + 1
+countR2 r2 r = r2
+
+countR3 :: Int -> Int -> Int
+countR3 r3 3 = r3 + 1
+countR3 r3 r = r3
+
+countBI :: Int -> Int -> Int
+countBI ne 1 = ne
+countBI ne ff = ne +1
 }
 
 
