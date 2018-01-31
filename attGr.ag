@@ -89,6 +89,12 @@ attr S
    syn deep :: {[String]}
 --atrribute to find builtins
    syn be :: Int
+-- count number of nested curly brackets 
+   syn cb :: Int 
+-- is the formula a proof?
+   syn proof :: Int
+-- builtin with formula expression
+   syn bwfe :: Int
    
 
 attr Formula
@@ -114,6 +120,13 @@ attr Formula
    syn deep :: {[String]}
 --atrribute to find builtins
    syn be :: Int
+-- count number of nested curly brackets 
+   syn cb :: Int 
+-- is the formula a proof?
+   syn proof :: Int
+-- builtin with formula expression
+   syn bwfe :: Int
+
 
 attr Term
 --Attributes for standard--
@@ -138,6 +151,13 @@ attr Term
    syn deep :: {[String]}
 --atrribute to find builtins
    syn be :: Int
+-- count number of nested curly brackets 
+   syn cb :: Int 
+-- is the formula a proof?
+   syn proof :: Int
+-- builtin with formula expression
+   syn bwfe :: Int
+
 
 attr Expression
 --Attributes for standard--
@@ -159,6 +179,13 @@ attr Expression
    syn deep :: {[String]}
 --atrribute to find builtins
    syn be :: Int
+-- count number of nested curly brackets
+   syn cb :: Int 
+-- is the formula a proof?
+   syn proof :: Int
+-- builtin with formula expression
+   syn bwfe :: Int
+
 
 --Definition   
 --TODO: default value should be empty list
@@ -178,6 +205,9 @@ sem S
                  lhs.count = findDepth @f.n1 1 @f.count
                  lhs.deep = deepest @f.n1 @f.deep
                  lhs.be = @f.be
+                 lhs.cb = @f.cb
+                 lhs.proof = @f.proof
+                 lhs.bwfe = @f.bwfe
   
 sem Formula
    | Triple lhs.n2 = (@s.n2 `union` @p.n2) `union` @o.n2
@@ -201,6 +231,9 @@ sem Formula
             lhs.count = max @s.count (max @p.count @o.count)
             lhs.deep = choose @o.deep  (choose @s.deep @p.deep @s.count @p.count) @o.count (max @s.count @p.count)
             lhs.be = maximum [@s.be, @p.be, @o.be]
+            lhs.cb = maximum [@s.cb, @p.cb, @o.cb]
+            lhs.proof = @o.proof
+            lhs.bwfe = builtinWithNesting @p.be @s.bwfe @o.bwfe
  
                
    | Implication lhs.n2 = []
@@ -219,6 +252,9 @@ sem Formula
                  lhs.count = max @e1.count @e2.count
                  lhs.deep = choose @e1.deep @e2.deep @e1.count @e2.count
                  lhs.be =  maximum [@e1.be, @e2.be]
+                 lhs.cb = maximum [@e1.cb, @e2.cb]
+                 lhs.proof = 0
+                 lhs.bwfe = maximum [@e1.bwfe, @e2.bwfe ]
 
    | Conjunction lhs.n2 = @c2.n2 `union` @c1.n2
                  lhs.n1 = @c2.n1 `union` @c1.n1
@@ -238,6 +274,9 @@ sem Formula
                  lhs.count = max @c1.count @c2.count
                  lhs.deep = choose @c1.deep @c2.deep @c1.count @c2.count
                  lhs.be = maximum [@c1.be, @c2.be]
+                 lhs.cb = maximum [@c1.cb, @c2.cb]
+                 lhs.proof = maximum [@c1.proof, @c2.proof]
+                 lhs.bwfe = maximum [@c1.bwfe, @c2.bwfe ]
                  
 sem Term
    | Universal lhs.n2 = ["U"++ @u]
@@ -252,6 +291,9 @@ sem Term
                lhs.count = 0
                lhs.deep = []
                lhs.be = 0
+               lhs.cb = 0
+               lhs.proof = 0 
+               lhs.bwfe = 0
                
 
    | Existential lhs.n2 = []
@@ -266,6 +308,9 @@ sem Term
                 lhs.count = 0
                 lhs.deep = []
                 lhs.be = 0
+                lhs.cb = 0
+                lhs.proof = 0
+                lhs.bwfe = 0
 
    | URI lhs.n2 = []
               lhs.n1 = []
@@ -279,6 +324,9 @@ sem Term
               lhs.count = 0
               lhs.deep = []
               lhs.be =  isBuiltIn @uri
+              lhs.cb = 0
+              lhs.proof = isProof @uri
+              lhs.bwfe = 0
 
    | Literal lhs.n2 = []
               lhs.n1 = []
@@ -292,6 +340,9 @@ sem Term
               lhs.count = 0
               lhs.deep = []
               lhs.be = 0
+              lhs.cb = 0
+              lhs.proof = 0
+              lhs.bwfe = 0
     
    | Exp  lhs.n2 = []
           lhs.n1 = @e.n1
@@ -305,6 +356,9 @@ sem Term
           lhs.count= @e.count
           lhs.deep = @e.deep
           lhs.be = @e.be
+          lhs.cb = @e.cb
+          lhs.proof = 0
+          lhs.bwfe = @e.bwfe
            
 
    |List  lhs.n2 = @term.n2 `union` @list.n2
@@ -320,8 +374,10 @@ sem Term
           list.c = @lhs.c
           lhs.count = max @term.count @list.count
           lhs.deep = @term.deep `union` @list.deep 
-          lhs.be = 0     
-                
+          lhs.be = 0
+          lhs.cb = maximum [@term.cb, @list.cb]     
+          lhs.proof = 0   
+          lhs.bwfe =  maximum [@term.bwfe, @list.bwfe]    
           
 
 sem Expression
@@ -335,6 +391,9 @@ sem Expression
           lhs.count = 0
           lhs.deep = []
           lhs.be = 0
+          lhs.cb = 0
+          lhs.proof = 0
+          lhs.bwfe = 0
 
    | FE   lhs.n1 = @f.n2
           f.scope = @lhs.scope `union` @f.n1 
@@ -349,6 +408,9 @@ sem Expression
           lhs.count = findDepth (@f.n1 \\ @lhs.scope) (@lhs.c +1) @f.count -- max (@lhs.c+1) @f.count
           lhs.deep = deepest (@f.n1 \\ @lhs.scope) @f.deep
           lhs.be = @f.be
+          lhs.cb = @f.cb + 1
+          lhs.proof = 0
+          lhs.bwfe =  b @f.bwfe
 
 
 
@@ -536,7 +598,7 @@ deepvars fname =  do {
                         }
                }
 
-
+--not used any more
 --hasBuiltins :: String -> Int
 hasBuiltins foname [] result = do { return (reverse result) } 
 hasBuiltins foname fs result =
@@ -582,7 +644,7 @@ compareAll foname target = do {
                --; builtins <- hasBuiltins foname newfs []
                ;   (values, count) <- (readAll foname newfs [] [0, 0, 0, 0, 0])
                ; let table = makeTable newfs values count
-               ; writeFile target $ ((replicate 40 ' ') ++ "cwm/es2  " ++ "cwm/eye  " ++ "eye/es2  " ++ "builtins  "++ "depth \n" )++ table
+               ; writeFile target $ ((replicate 40 ' ') ++ "cwm/es2  " ++ "cwm/eye  " ++ "eye/es2  " ++ "builtins  "++ "depth  " ++ "nested " ++ "reason \n" )++ table
                }
 
 
@@ -596,14 +658,20 @@ readAll foname fs list [a, b, c, d, e]  = do {
                          ; print (foname ++ "/"++ fname ++ " parsed \n" )  
                                     ;case runParser mainparser 0 fname input of
                                     {
-                                    Left  err ->   (readAll foname (tail fs) ( [2, 2, 2, 2, 2, 2 ]:list ) [a, b, c, d, e] )
-                                    ;Right ans -> (\res -> ((\x y z zz zzzz zzz -> (readAll foname (tail fs) (
+                                    Left  err ->   (readAll foname (tail fs) ( [9,9,9,9,9,9,9,9 ]:list ) [a, b, c, d, e] )
+                                    ;Right ans -> case ((  eyeVar_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )== []) of
+                                                    {
+                                                     True -> (readAll foname (tail fs) ( [9,9,9,9,9,9,9,9 ]:list ) [a, b, c, d, e] )
+                                                     ; False ->
+                                                         (\res -> ((\x y z zz zzzz zzz ff  -> (readAll foname (tail fs) (
                                                              [x, 
                                                               y, 
                                                               z,
                                                               zz,
                                                               zzzz,
-                                                              zzz  
+                                                              zzz,
+                                                              ff ,
+                                                              (reason y (  proof_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )  zzz (  bwfe_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  ) ) 
                                                              ]:list ) 
                                                              [(a+x), (b+y), (c+z), (d+1), (e+zzzz) ]
                                                              ) )
@@ -613,8 +681,10 @@ readAll foname fs list [a, b, c, d, e]  = do {
                                                              (boolToInt ( (eyeVar_Syn_S (  wrap_S  (sem_S  res) Inh_S   ))==[]))
                                                              (be_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  ))
                                                              (  count_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )
+                                                             (  cb_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )
                                                              ))
                                                              (read (show ans))
+                                      }
                                    }
                                
                             
@@ -655,8 +725,8 @@ niceTable f fname = (replicate 30 ' ') ++ "cwm/eye  " ++ "cwm/uni  " ++ "uni/eye
 
 makeTable :: [String] -> [[Int]] -> [Int] -> String
 makeTable [] values stat = lastLine stat
-makeTable names ([a , b, c , 1, e1, e]:v) [s1, s2, s3, s4, s5] = (makeTable (tail names) v [(s1-a), (s2-b), (s3-c), (s4-1),(s5-e1)])
-makeTable names ([a , b, c , d, e1, e]:v) stat = (head names) ++ (replicate (40 - length(head names)) ' ') ++ (concat $ fmap makeEntry [a, b, c, e1,  e ]) ++ "\n"
+makeTable names ([a , b, c , 1, e1, e, f, r]:v) [s1, s2, s3, s4, s5, s6 , s7] = (makeTable (tail names) v [(s1-a), (s2-b), (s3-c), (s4-1),(s5-e1)])
+makeTable names ([a , b, c , d, e1, e, f, r]:v) stat = (head names) ++ (replicate (40 - length(head names)) ' ') ++ (concat $ fmap makeEntry [a, b, c, e1,  e, f , r]) ++ "\n"
                          ++ (makeTable (tail names) v stat)
 
 
@@ -716,13 +786,19 @@ boolToString :: Bool -> String
 boolToString True = "TRUE"
 boolToString False = "FALSE"
 
+
+isProof :: String -> Int
+isProof string
+        |string == "r:Proof" = 1
+        | otherwise = 0
+
 isBuiltIn :: String -> Int
 isBuiltIn string 
           | elem string builtinlist = 1
           | isPrefixOf "prolog:" string = 1
           | otherwise = 0
 
-builtinlist = ["e:avg",
+builtinlist = [ "e:avg",
                 "e:becomes",
                 "e:biconditional", 
                 "e:binaryEntropy", 
@@ -969,6 +1045,26 @@ builtinlist = ["e:avg",
                 "func:except"
                 ]
 
+reason :: Int -> Int -> Int -> Int -> Int
+-- "no problem" = 0,  "nesting" = 1, "proof" = 2, "builtin" = 3
+reason 1 n1 n2 n3 = 0
+reason 0 n1 n2 n3
+       | (n3 > 1)  = 3
+       | (n1 == 1) && (n2 > 2) = 1
+       | (n1 == 1) = 2
+       | otherwise = 99
+ 
+builtinWithNesting :: Int -> Int -> Int -> Int 
+builtinWithNesting 0 2 b = 2  
+builtinWithNesting 0 a 2 = 2    
+builtinWithNesting 0 a b = 0
+builtinWithNesting x 1 b = 2
+builtinWithNesting x a 1 = 2
+builtinWithNesting x a b = 0
+
+b :: Int -> Int
+b 0 = 1
+b n = n 
 }
 
 
