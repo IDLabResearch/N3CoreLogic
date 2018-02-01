@@ -677,7 +677,7 @@ readAll foname fs list [a, b, c, d, e, r1, r2, r3, ne, pc]  = do {
                                     Left  err ->   (readAll foname (tail fs) ( [9,9,9,9,9,9,9,9, 9 ]:list ) [a, b, c, d, e, r1, r2, r3, ne, pc] )
                                     ;Right ans -> case ((  eyeVar_Syn_S (  wrap_S  (sem_S  (read (show ans))) Inh_S  )  )== []) of
                                                     {
-                                                     True -> (readAll foname (tail fs) ( [9,9,9,9,9,9,9,9 ]:list ) [a, b, c, d, e, r1, r2, r3, ne, pc] )
+                                                     True -> (readAll foname (tail fs) ( [9,9,9,9,9,9,9,9, 9]:list ) [a, b, c, d, e, r1, r2, r3, ne, pc] )
                                                      ; False ->
                                                          (\res -> ((\x y z zz zzzz proof zzz ff r  -> (readAll foname (tail fs) (
                                                              [x, 
@@ -1114,6 +1114,7 @@ countR3 :: Int -> Int -> Int
 countR3 r3 3 = r3 + 1
 countR3 r3 r = r3
 
+--this is to count nesting
 countBI :: Int -> Int -> Int
 countBI ne 1 = ne
 countBI ne ff = ne +1
