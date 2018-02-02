@@ -10,6 +10,7 @@ import N3grammar
 import System.Directory
 import Data.Text (pack, count)
 
+
 }
 
 --N3 Grammar
@@ -647,7 +648,7 @@ compareAll :: String -> String ->  IO ()
 compareAll foname target = do {
                
                 files <- getDirectoryContents foname
-                ; let fs = (drop 2 files)-- I guess I should solve that differently?
+                ; let fs = (filter (isSuffixOf ".n3") files)
                -- ; let fname = head fs
                -- ;  input <- readFile (foname ++"/"++fname)
                -- ; case runParser mainparser 0 fname input of

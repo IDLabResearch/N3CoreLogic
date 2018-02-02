@@ -12,8 +12,9 @@ import N3grammar
 import System.Directory
 import Data.Text (pack, count)
 
-{-# LINE 16 "attGr.hs" #-}
-{-# LINE 433 "./attGr.ag" #-}
+
+{-# LINE 17 "attGr.hs" #-}
+{-# LINE 434 "./attGr.ag" #-}
 
 
 
@@ -231,7 +232,7 @@ compareAll :: String -> String ->  IO ()
 compareAll foname target = do {
                
                 files <- getDirectoryContents foname
-                ; let fs = (drop 2 files)-- I guess I should solve that differently?
+                ; let fs = (filter (isSuffixOf ".n3") files)
                -- ; let fname = head fs
                -- ;  input <- readFile (foname ++"/"++fname)
                -- ; case runParser mainparser 0 fname input of
@@ -702,7 +703,7 @@ countR3 r3 r = r3
 countBI :: Int -> Int -> Int
 countBI ne 1 = ne
 countBI ne ff = ne +1
-{-# LINE 706 "attGr.hs" #-}
+{-# LINE 707 "attGr.hs" #-}
 -- CExpression -------------------------------------------------
 data CExpression = CBE (Bool)
                  | CFE (CFormula)
@@ -879,74 +880,74 @@ sem_Expression_BE b_ =
               _lhsObwfe :: Int
               _lhsObiscope :: ([String])
               _lhsOn1 =
-                  ({-# LINE 398 "./attGr.ag" #-}
+                  ({-# LINE 399 "./attGr.ag" #-}
                    []
-                   {-# LINE 885 "attGr.hs" #-}
+                   {-# LINE 886 "attGr.hs" #-}
                    )
               _lhsOtransformed =
-                  ({-# LINE 399 "./attGr.ag" #-}
+                  ({-# LINE 400 "./attGr.ag" #-}
                    CBE b_
-                   {-# LINE 890 "attGr.hs" #-}
+                   {-# LINE 891 "attGr.hs" #-}
                    )
               _lhsOformula =
-                  ({-# LINE 400 "./attGr.ag" #-}
+                  ({-# LINE 401 "./attGr.ag" #-}
                    if b_ == True then "<>" else "false"
-                   {-# LINE 895 "attGr.hs" #-}
+                   {-# LINE 896 "attGr.hs" #-}
                    )
               _lhsOeyeVar =
-                  ({-# LINE 401 "./attGr.ag" #-}
+                  ({-# LINE 402 "./attGr.ag" #-}
                    []
-                   {-# LINE 900 "attGr.hs" #-}
+                   {-# LINE 901 "attGr.hs" #-}
                    )
               _lhsOeye =
-                  ({-# LINE 402 "./attGr.ag" #-}
+                  ({-# LINE 403 "./attGr.ag" #-}
                    CBE b_
-                   {-# LINE 905 "attGr.hs" #-}
+                   {-# LINE 906 "attGr.hs" #-}
                    )
               _lhsOeyeEx =
-                  ({-# LINE 403 "./attGr.ag" #-}
+                  ({-# LINE 404 "./attGr.ag" #-}
                    []
-                   {-# LINE 910 "attGr.hs" #-}
+                   {-# LINE 911 "attGr.hs" #-}
                    )
               _lhsOdiff =
-                  ({-# LINE 404 "./attGr.ag" #-}
+                  ({-# LINE 405 "./attGr.ag" #-}
                    CBE b_
-                   {-# LINE 915 "attGr.hs" #-}
+                   {-# LINE 916 "attGr.hs" #-}
                    )
               _lhsOcount =
-                  ({-# LINE 405 "./attGr.ag" #-}
+                  ({-# LINE 406 "./attGr.ag" #-}
                    0
-                   {-# LINE 920 "attGr.hs" #-}
+                   {-# LINE 921 "attGr.hs" #-}
                    )
               _lhsOdeep =
-                  ({-# LINE 406 "./attGr.ag" #-}
+                  ({-# LINE 407 "./attGr.ag" #-}
                    []
-                   {-# LINE 925 "attGr.hs" #-}
+                   {-# LINE 926 "attGr.hs" #-}
                    )
               _lhsObe =
-                  ({-# LINE 407 "./attGr.ag" #-}
-                   0
-                   {-# LINE 930 "attGr.hs" #-}
-                   )
-              _lhsOcb =
                   ({-# LINE 408 "./attGr.ag" #-}
                    0
-                   {-# LINE 935 "attGr.hs" #-}
+                   {-# LINE 931 "attGr.hs" #-}
                    )
-              _lhsOproof =
+              _lhsOcb =
                   ({-# LINE 409 "./attGr.ag" #-}
                    0
-                   {-# LINE 940 "attGr.hs" #-}
+                   {-# LINE 936 "attGr.hs" #-}
                    )
-              _lhsObwfe =
+              _lhsOproof =
                   ({-# LINE 410 "./attGr.ag" #-}
                    0
-                   {-# LINE 945 "attGr.hs" #-}
+                   {-# LINE 941 "attGr.hs" #-}
+                   )
+              _lhsObwfe =
+                  ({-# LINE 411 "./attGr.ag" #-}
+                   0
+                   {-# LINE 946 "attGr.hs" #-}
                    )
               _lhsObiscope =
-                  ({-# LINE 411 "./attGr.ag" #-}
+                  ({-# LINE 412 "./attGr.ag" #-}
                    []
-                   {-# LINE 950 "attGr.hs" #-}
+                   {-# LINE 951 "attGr.hs" #-}
                    )
           in  ( _lhsObe,_lhsObiscope,_lhsObwfe,_lhsOcb,_lhsOcount,_lhsOdeep,_lhsOdiff,_lhsOeye,_lhsOeyeEx,_lhsOeyeVar,_lhsOformula,_lhsOn1,_lhsOproof,_lhsOtransformed)))
 sem_Expression_FE :: T_Formula ->
@@ -990,94 +991,94 @@ sem_Expression_FE f_ =
               _fIproof :: Int
               _fItransformed :: CFormula
               _lhsOn1 =
-                  ({-# LINE 413 "./attGr.ag" #-}
+                  ({-# LINE 414 "./attGr.ag" #-}
                    _fIn2
-                   {-# LINE 996 "attGr.hs" #-}
+                   {-# LINE 997 "attGr.hs" #-}
                    )
               _fOscope =
-                  ({-# LINE 414 "./attGr.ag" #-}
+                  ({-# LINE 415 "./attGr.ag" #-}
                    _lhsIscope `union` _fIn1
-                   {-# LINE 1001 "attGr.hs" #-}
+                   {-# LINE 1002 "attGr.hs" #-}
                    )
               _lhsOtransformed =
-                  ({-# LINE 415 "./attGr.ag" #-}
+                  ({-# LINE 416 "./attGr.ag" #-}
                    CFE (qua (_fIn1 \\ _lhsIscope) _fIex _fItransformed)
-                   {-# LINE 1006 "attGr.hs" #-}
+                   {-# LINE 1007 "attGr.hs" #-}
                    )
               _lhsOformula =
-                  ({-# LINE 416 "./attGr.ag" #-}
+                  ({-# LINE 417 "./attGr.ag" #-}
                    "<"++ (quaf (_fIn1 \\ _lhsIscope) _fIex _fIformula) ++">"
-                   {-# LINE 1011 "attGr.hs" #-}
+                   {-# LINE 1012 "attGr.hs" #-}
                    )
               _fOuni =
-                  ({-# LINE 417 "./attGr.ag" #-}
+                  ({-# LINE 418 "./attGr.ag" #-}
                    _fIn1 \\ _lhsIscope
-                   {-# LINE 1016 "attGr.hs" #-}
+                   {-# LINE 1017 "attGr.hs" #-}
                    )
               _lhsOeye =
-                  ({-# LINE 418 "./attGr.ag" #-}
+                  ({-# LINE 419 "./attGr.ag" #-}
                    CFE (qua [] (imp _lhsIinsideQuotation _fIeyeEx) _fIeye )
-                   {-# LINE 1021 "attGr.hs" #-}
+                   {-# LINE 1022 "attGr.hs" #-}
                    )
               _lhsOeyeEx =
-                  ({-# LINE 419 "./attGr.ag" #-}
+                  ({-# LINE 420 "./attGr.ag" #-}
                    _fIeyeEx
-                   {-# LINE 1026 "attGr.hs" #-}
+                   {-# LINE 1027 "attGr.hs" #-}
                    )
               _lhsOdiff =
-                  ({-# LINE 420 "./attGr.ag" #-}
+                  ({-# LINE 421 "./attGr.ag" #-}
                    CFE (qua [] _fIex _fIdiff)
-                   {-# LINE 1031 "attGr.hs" #-}
+                   {-# LINE 1032 "attGr.hs" #-}
                    )
               _fOinsideQuotation =
-                  ({-# LINE 421 "./attGr.ag" #-}
+                  ({-# LINE 422 "./attGr.ag" #-}
                    True
-                   {-# LINE 1036 "attGr.hs" #-}
+                   {-# LINE 1037 "attGr.hs" #-}
                    )
               _fOc =
-                  ({-# LINE 422 "./attGr.ag" #-}
+                  ({-# LINE 423 "./attGr.ag" #-}
                    _lhsIc+1
-                   {-# LINE 1041 "attGr.hs" #-}
+                   {-# LINE 1042 "attGr.hs" #-}
                    )
               _lhsOcount =
-                  ({-# LINE 423 "./attGr.ag" #-}
+                  ({-# LINE 424 "./attGr.ag" #-}
                    findDepth (_fIn1 \\ _lhsIscope) (_lhsIc +1) _fIcount
-                   {-# LINE 1046 "attGr.hs" #-}
+                   {-# LINE 1047 "attGr.hs" #-}
                    )
               _lhsOdeep =
-                  ({-# LINE 424 "./attGr.ag" #-}
+                  ({-# LINE 425 "./attGr.ag" #-}
                    deepest (_fIn1 \\ _lhsIscope) _fIdeep
-                   {-# LINE 1051 "attGr.hs" #-}
+                   {-# LINE 1052 "attGr.hs" #-}
                    )
               _lhsObe =
-                  ({-# LINE 425 "./attGr.ag" #-}
+                  ({-# LINE 426 "./attGr.ag" #-}
                    _fIbe
-                   {-# LINE 1056 "attGr.hs" #-}
+                   {-# LINE 1057 "attGr.hs" #-}
                    )
               _lhsOcb =
-                  ({-# LINE 426 "./attGr.ag" #-}
+                  ({-# LINE 427 "./attGr.ag" #-}
                    _fIcb + 1
-                   {-# LINE 1061 "attGr.hs" #-}
+                   {-# LINE 1062 "attGr.hs" #-}
                    )
               _lhsOproof =
-                  ({-# LINE 427 "./attGr.ag" #-}
+                  ({-# LINE 428 "./attGr.ag" #-}
                    0
-                   {-# LINE 1066 "attGr.hs" #-}
+                   {-# LINE 1067 "attGr.hs" #-}
                    )
               _lhsObwfe =
-                  ({-# LINE 428 "./attGr.ag" #-}
+                  ({-# LINE 429 "./attGr.ag" #-}
                    b _fIbwfe (_fIbiscope \\ _lhsIscope)
-                   {-# LINE 1071 "attGr.hs" #-}
+                   {-# LINE 1072 "attGr.hs" #-}
                    )
               _lhsObiscope =
-                  ({-# LINE 429 "./attGr.ag" #-}
+                  ({-# LINE 430 "./attGr.ag" #-}
                    []
-                   {-# LINE 1076 "attGr.hs" #-}
+                   {-# LINE 1077 "attGr.hs" #-}
                    )
               _lhsOeyeVar =
-                  ({-# LINE 173 "./attGr.ag" #-}
+                  ({-# LINE 174 "./attGr.ag" #-}
                    _fIeyeVar
-                   {-# LINE 1081 "attGr.hs" #-}
+                   {-# LINE 1082 "attGr.hs" #-}
                    )
               ( _fIbe,_fIbiscope,_fIbwfe,_fIcb,_fIcount,_fIdeep,_fIdiff,_fIex,_fIeye,_fIeyeEx,_fIeyeVar,_fIformula,_fIn1,_fIn2,_fIproof,_fItransformed) =
                   f_ _fOc _fOinsideQuotation _fOscope _fOuni
@@ -1196,144 +1197,144 @@ sem_Formula_Triple s_ p_ o_ =
               _oIproof :: Int
               _oItransformed :: CTerm
               _lhsOn2 =
-                  ({-# LINE 218 "./attGr.ag" #-}
+                  ({-# LINE 219 "./attGr.ag" #-}
                    (_sIn2 `union` _pIn2) `union` _oIn2
-                   {-# LINE 1202 "attGr.hs" #-}
+                   {-# LINE 1203 "attGr.hs" #-}
                    )
               _lhsOn1 =
-                  ({-# LINE 219 "./attGr.ag" #-}
+                  ({-# LINE 220 "./attGr.ag" #-}
                    (_sIn1 `union` _pIn1) `union` _oIn1
-                   {-# LINE 1207 "attGr.hs" #-}
+                   {-# LINE 1208 "attGr.hs" #-}
                    )
               _lhsOex =
-                  ({-# LINE 220 "./attGr.ag" #-}
+                  ({-# LINE 221 "./attGr.ag" #-}
                    (_sIex `union` _pIex) `union` _oIex
-                   {-# LINE 1212 "attGr.hs" #-}
+                   {-# LINE 1213 "attGr.hs" #-}
                    )
               _lhsOtransformed =
-                  ({-# LINE 221 "./attGr.ag" #-}
+                  ({-# LINE 222 "./attGr.ag" #-}
                    CTriple _sItransformed _pItransformed _oItransformed
-                   {-# LINE 1217 "attGr.hs" #-}
+                   {-# LINE 1218 "attGr.hs" #-}
                    )
               _lhsOformula =
-                  ({-# LINE 222 "./attGr.ag" #-}
+                  ({-# LINE 223 "./attGr.ag" #-}
                    _sIformula ++ " " ++ _pIformula ++ " " ++ _oIformula
-                   {-# LINE 1222 "attGr.hs" #-}
+                   {-# LINE 1223 "attGr.hs" #-}
                    )
               _lhsOeye =
-                  ({-# LINE 223 "./attGr.ag" #-}
+                  ({-# LINE 224 "./attGr.ag" #-}
                    CTriple _sIeye _pIeye _oIeye
-                   {-# LINE 1227 "attGr.hs" #-}
+                   {-# LINE 1228 "attGr.hs" #-}
                    )
               _lhsOeyeVar =
-                  ({-# LINE 224 "./attGr.ag" #-}
+                  ({-# LINE 225 "./attGr.ag" #-}
                    (_sIeyeVar `union` _pIeyeVar) `union` _oIeyeVar
-                   {-# LINE 1232 "attGr.hs" #-}
+                   {-# LINE 1233 "attGr.hs" #-}
                    )
               _lhsOeyeEx =
-                  ({-# LINE 225 "./attGr.ag" #-}
+                  ({-# LINE 226 "./attGr.ag" #-}
                    (_sIeyeEx `union` _pIeyeEx) `union` _oIeyeEx
-                   {-# LINE 1237 "attGr.hs" #-}
+                   {-# LINE 1238 "attGr.hs" #-}
                    )
               _sOinsideQuotation =
-                  ({-# LINE 226 "./attGr.ag" #-}
-                   _lhsIinsideQuotation
-                   {-# LINE 1242 "attGr.hs" #-}
-                   )
-              _pOinsideQuotation =
                   ({-# LINE 227 "./attGr.ag" #-}
                    _lhsIinsideQuotation
-                   {-# LINE 1247 "attGr.hs" #-}
+                   {-# LINE 1243 "attGr.hs" #-}
                    )
-              _oOinsideQuotation =
+              _pOinsideQuotation =
                   ({-# LINE 228 "./attGr.ag" #-}
                    _lhsIinsideQuotation
-                   {-# LINE 1252 "attGr.hs" #-}
+                   {-# LINE 1248 "attGr.hs" #-}
+                   )
+              _oOinsideQuotation =
+                  ({-# LINE 229 "./attGr.ag" #-}
+                   _lhsIinsideQuotation
+                   {-# LINE 1253 "attGr.hs" #-}
                    )
               _sOvarInImpException =
-                  ({-# LINE 229 "./attGr.ag" #-}
+                  ({-# LINE 230 "./attGr.ag" #-}
                    impExc _pIeye _lhsIinsideQuotation
-                   {-# LINE 1257 "attGr.hs" #-}
+                   {-# LINE 1258 "attGr.hs" #-}
                    )
               _pOvarInImpException =
-                  ({-# LINE 230 "./attGr.ag" #-}
+                  ({-# LINE 231 "./attGr.ag" #-}
                    False
-                   {-# LINE 1262 "attGr.hs" #-}
+                   {-# LINE 1263 "attGr.hs" #-}
                    )
               _oOvarInImpException =
-                  ({-# LINE 231 "./attGr.ag" #-}
+                  ({-# LINE 232 "./attGr.ag" #-}
                    impExc _pIeye _lhsIinsideQuotation
-                   {-# LINE 1267 "attGr.hs" #-}
+                   {-# LINE 1268 "attGr.hs" #-}
                    )
               _lhsOdiff =
-                  ({-# LINE 232 "./attGr.ag" #-}
+                  ({-# LINE 233 "./attGr.ag" #-}
                    CTriple _sIdiff _pIdiff _oIdiff
-                   {-# LINE 1272 "attGr.hs" #-}
+                   {-# LINE 1273 "attGr.hs" #-}
                    )
               _sOc =
-                  ({-# LINE 233 "./attGr.ag" #-}
-                   _lhsIc
-                   {-# LINE 1277 "attGr.hs" #-}
-                   )
-              _pOc =
                   ({-# LINE 234 "./attGr.ag" #-}
                    _lhsIc
-                   {-# LINE 1282 "attGr.hs" #-}
+                   {-# LINE 1278 "attGr.hs" #-}
                    )
-              _oOc =
+              _pOc =
                   ({-# LINE 235 "./attGr.ag" #-}
                    _lhsIc
-                   {-# LINE 1287 "attGr.hs" #-}
+                   {-# LINE 1283 "attGr.hs" #-}
+                   )
+              _oOc =
+                  ({-# LINE 236 "./attGr.ag" #-}
+                   _lhsIc
+                   {-# LINE 1288 "attGr.hs" #-}
                    )
               _lhsOcount =
-                  ({-# LINE 236 "./attGr.ag" #-}
+                  ({-# LINE 237 "./attGr.ag" #-}
                    max _sIcount (max _pIcount _oIcount)
-                   {-# LINE 1292 "attGr.hs" #-}
+                   {-# LINE 1293 "attGr.hs" #-}
                    )
               _lhsOdeep =
-                  ({-# LINE 237 "./attGr.ag" #-}
+                  ({-# LINE 238 "./attGr.ag" #-}
                    choose _oIdeep  (choose _sIdeep _pIdeep _sIcount _pIcount) _oIcount (max _sIcount _pIcount)
-                   {-# LINE 1297 "attGr.hs" #-}
+                   {-# LINE 1298 "attGr.hs" #-}
                    )
               _lhsObe =
-                  ({-# LINE 238 "./attGr.ag" #-}
+                  ({-# LINE 239 "./attGr.ag" #-}
                    maximum [_sIbe, _pIbe, _oIbe]
-                   {-# LINE 1302 "attGr.hs" #-}
+                   {-# LINE 1303 "attGr.hs" #-}
                    )
               _lhsOcb =
-                  ({-# LINE 239 "./attGr.ag" #-}
+                  ({-# LINE 240 "./attGr.ag" #-}
                    maximum [_sIcb, _pIcb, _oIcb]
-                   {-# LINE 1307 "attGr.hs" #-}
+                   {-# LINE 1308 "attGr.hs" #-}
                    )
               _lhsOproof =
-                  ({-# LINE 240 "./attGr.ag" #-}
+                  ({-# LINE 241 "./attGr.ag" #-}
                    _oIproof
-                   {-# LINE 1312 "attGr.hs" #-}
+                   {-# LINE 1313 "attGr.hs" #-}
                    )
               _lhsObwfe =
-                  ({-# LINE 241 "./attGr.ag" #-}
+                  ({-# LINE 242 "./attGr.ag" #-}
                    maximum [ _pIbwfe, _sIbwfe, _oIbwfe]
-                   {-# LINE 1317 "attGr.hs" #-}
+                   {-# LINE 1318 "attGr.hs" #-}
                    )
               _lhsObiscope =
-                  ({-# LINE 242 "./attGr.ag" #-}
+                  ({-# LINE 243 "./attGr.ag" #-}
                    universalsInBuiltins _pIbe (_sIn1  `union` _oIn1) ((_sIbiscope `union` _pIbiscope) `union` _oIbiscope)
-                   {-# LINE 1322 "attGr.hs" #-}
+                   {-# LINE 1323 "attGr.hs" #-}
                    )
               _sOscope =
-                  ({-# LINE 137 "./attGr.ag" #-}
+                  ({-# LINE 138 "./attGr.ag" #-}
                    _lhsIscope
-                   {-# LINE 1327 "attGr.hs" #-}
+                   {-# LINE 1328 "attGr.hs" #-}
                    )
               _pOscope =
-                  ({-# LINE 137 "./attGr.ag" #-}
+                  ({-# LINE 138 "./attGr.ag" #-}
                    _lhsIscope
-                   {-# LINE 1332 "attGr.hs" #-}
+                   {-# LINE 1333 "attGr.hs" #-}
                    )
               _oOscope =
-                  ({-# LINE 137 "./attGr.ag" #-}
+                  ({-# LINE 138 "./attGr.ag" #-}
                    _lhsIscope
-                   {-# LINE 1337 "attGr.hs" #-}
+                   {-# LINE 1338 "attGr.hs" #-}
                    )
               ( _sIbe,_sIbiscope,_sIbwfe,_sIcb,_sIcount,_sIdeep,_sIdiff,_sIex,_sIeye,_sIeyeEx,_sIeyeVar,_sIformula,_sIn1,_sIn2,_sIproof,_sItransformed) =
                   s_ _sOc _sOinsideQuotation _sOscope _sOvarInImpException
@@ -1401,114 +1402,114 @@ sem_Formula_Implication e1_ e2_ =
               _e2Iproof :: Int
               _e2Itransformed :: CExpression
               _lhsOn2 =
-                  ({-# LINE 245 "./attGr.ag" #-}
+                  ({-# LINE 246 "./attGr.ag" #-}
                    []
-                   {-# LINE 1407 "attGr.hs" #-}
+                   {-# LINE 1408 "attGr.hs" #-}
                    )
               _lhsOn1 =
-                  ({-# LINE 246 "./attGr.ag" #-}
+                  ({-# LINE 247 "./attGr.ag" #-}
                    _e1In1 `union` _e2In1
-                   {-# LINE 1412 "attGr.hs" #-}
+                   {-# LINE 1413 "attGr.hs" #-}
                    )
               _lhsOex =
-                  ({-# LINE 247 "./attGr.ag" #-}
+                  ({-# LINE 248 "./attGr.ag" #-}
                    []
-                   {-# LINE 1417 "attGr.hs" #-}
+                   {-# LINE 1418 "attGr.hs" #-}
                    )
               _lhsOtransformed =
-                  ({-# LINE 248 "./attGr.ag" #-}
+                  ({-# LINE 249 "./attGr.ag" #-}
                    CImplication _e1Itransformed _e2Itransformed
-                   {-# LINE 1422 "attGr.hs" #-}
+                   {-# LINE 1423 "attGr.hs" #-}
                    )
               _lhsOformula =
-                  ({-# LINE 249 "./attGr.ag" #-}
+                  ({-# LINE 250 "./attGr.ag" #-}
                    _e1Iformula ++ " -> " ++ _e2Iformula
-                   {-# LINE 1427 "attGr.hs" #-}
+                   {-# LINE 1428 "attGr.hs" #-}
                    )
               _lhsOeye =
-                  ({-# LINE 250 "./attGr.ag" #-}
+                  ({-# LINE 251 "./attGr.ag" #-}
                    CImplication _e1Ieye _e2Ieye
-                   {-# LINE 1432 "attGr.hs" #-}
+                   {-# LINE 1433 "attGr.hs" #-}
                    )
               _lhsOeyeVar =
-                  ({-# LINE 251 "./attGr.ag" #-}
+                  ({-# LINE 252 "./attGr.ag" #-}
                    _e1IeyeVar `union` _e2IeyeVar
-                   {-# LINE 1437 "attGr.hs" #-}
+                   {-# LINE 1438 "attGr.hs" #-}
                    )
               _lhsOeyeEx =
-                  ({-# LINE 252 "./attGr.ag" #-}
+                  ({-# LINE 253 "./attGr.ag" #-}
                    keepEx _lhsIinsideQuotation (_e1IeyeEx `union` _e2IeyeEx)
-                   {-# LINE 1442 "attGr.hs" #-}
+                   {-# LINE 1443 "attGr.hs" #-}
                    )
               _e1OinsideQuotation =
-                  ({-# LINE 253 "./attGr.ag" #-}
-                   _lhsIinsideQuotation
-                   {-# LINE 1447 "attGr.hs" #-}
-                   )
-              _e2OinsideQuotation =
                   ({-# LINE 254 "./attGr.ag" #-}
                    _lhsIinsideQuotation
-                   {-# LINE 1452 "attGr.hs" #-}
+                   {-# LINE 1448 "attGr.hs" #-}
+                   )
+              _e2OinsideQuotation =
+                  ({-# LINE 255 "./attGr.ag" #-}
+                   _lhsIinsideQuotation
+                   {-# LINE 1453 "attGr.hs" #-}
                    )
               _lhsOdiff =
-                  ({-# LINE 255 "./attGr.ag" #-}
+                  ({-# LINE 256 "./attGr.ag" #-}
                    CImplication _e1Idiff _e2Idiff
-                   {-# LINE 1457 "attGr.hs" #-}
+                   {-# LINE 1458 "attGr.hs" #-}
                    )
               _e1Oc =
-                  ({-# LINE 256 "./attGr.ag" #-}
-                   _lhsIc
-                   {-# LINE 1462 "attGr.hs" #-}
-                   )
-              _e2Oc =
                   ({-# LINE 257 "./attGr.ag" #-}
                    _lhsIc
-                   {-# LINE 1467 "attGr.hs" #-}
+                   {-# LINE 1463 "attGr.hs" #-}
+                   )
+              _e2Oc =
+                  ({-# LINE 258 "./attGr.ag" #-}
+                   _lhsIc
+                   {-# LINE 1468 "attGr.hs" #-}
                    )
               _lhsOcount =
-                  ({-# LINE 258 "./attGr.ag" #-}
+                  ({-# LINE 259 "./attGr.ag" #-}
                    max _e1Icount _e2Icount
-                   {-# LINE 1472 "attGr.hs" #-}
+                   {-# LINE 1473 "attGr.hs" #-}
                    )
               _lhsOdeep =
-                  ({-# LINE 259 "./attGr.ag" #-}
+                  ({-# LINE 260 "./attGr.ag" #-}
                    choose _e1Ideep _e2Ideep _e1Icount _e2Icount
-                   {-# LINE 1477 "attGr.hs" #-}
+                   {-# LINE 1478 "attGr.hs" #-}
                    )
               _lhsObe =
-                  ({-# LINE 260 "./attGr.ag" #-}
+                  ({-# LINE 261 "./attGr.ag" #-}
                    maximum [_e1Ibe, _e2Ibe]
-                   {-# LINE 1482 "attGr.hs" #-}
+                   {-# LINE 1483 "attGr.hs" #-}
                    )
               _lhsOcb =
-                  ({-# LINE 261 "./attGr.ag" #-}
+                  ({-# LINE 262 "./attGr.ag" #-}
                    maximum [_e1Icb, _e2Icb]
-                   {-# LINE 1487 "attGr.hs" #-}
+                   {-# LINE 1488 "attGr.hs" #-}
                    )
               _lhsOproof =
-                  ({-# LINE 262 "./attGr.ag" #-}
+                  ({-# LINE 263 "./attGr.ag" #-}
                    0
-                   {-# LINE 1492 "attGr.hs" #-}
+                   {-# LINE 1493 "attGr.hs" #-}
                    )
               _lhsObwfe =
-                  ({-# LINE 263 "./attGr.ag" #-}
+                  ({-# LINE 264 "./attGr.ag" #-}
                    maximum [_e1Ibwfe, _e2Ibwfe ]
-                   {-# LINE 1497 "attGr.hs" #-}
+                   {-# LINE 1498 "attGr.hs" #-}
                    )
               _lhsObiscope =
-                  ({-# LINE 264 "./attGr.ag" #-}
+                  ({-# LINE 265 "./attGr.ag" #-}
                    _e2Ibiscope `union` _e1Ibiscope
-                   {-# LINE 1502 "attGr.hs" #-}
+                   {-# LINE 1503 "attGr.hs" #-}
                    )
               _e1Oscope =
-                  ({-# LINE 168 "./attGr.ag" #-}
+                  ({-# LINE 169 "./attGr.ag" #-}
                    _lhsIscope
-                   {-# LINE 1507 "attGr.hs" #-}
+                   {-# LINE 1508 "attGr.hs" #-}
                    )
               _e2Oscope =
-                  ({-# LINE 168 "./attGr.ag" #-}
+                  ({-# LINE 169 "./attGr.ag" #-}
                    _lhsIscope
-                   {-# LINE 1512 "attGr.hs" #-}
+                   {-# LINE 1513 "attGr.hs" #-}
                    )
               ( _e1Ibe,_e1Ibiscope,_e1Ibwfe,_e1Icb,_e1Icount,_e1Ideep,_e1Idiff,_e1Ieye,_e1IeyeEx,_e1IeyeVar,_e1Iformula,_e1In1,_e1Iproof,_e1Itransformed) =
                   e1_ _e1Oc _e1OinsideQuotation _e1Oscope
@@ -1580,124 +1581,124 @@ sem_Formula_Conjunction c1_ c2_ =
               _c2Iproof :: Int
               _c2Itransformed :: CFormula
               _lhsOn2 =
-                  ({-# LINE 266 "./attGr.ag" #-}
+                  ({-# LINE 267 "./attGr.ag" #-}
                    _c2In2 `union` _c1In2
-                   {-# LINE 1586 "attGr.hs" #-}
+                   {-# LINE 1587 "attGr.hs" #-}
                    )
               _lhsOn1 =
-                  ({-# LINE 267 "./attGr.ag" #-}
+                  ({-# LINE 268 "./attGr.ag" #-}
                    _c2In1 `union` _c1In1
-                   {-# LINE 1591 "attGr.hs" #-}
+                   {-# LINE 1592 "attGr.hs" #-}
                    )
               _lhsOex =
-                  ({-# LINE 268 "./attGr.ag" #-}
+                  ({-# LINE 269 "./attGr.ag" #-}
                    _c2Iex `union` _c1Iex
-                   {-# LINE 1596 "attGr.hs" #-}
+                   {-# LINE 1597 "attGr.hs" #-}
                    )
               _c1Oscope =
-                  ({-# LINE 269 "./attGr.ag" #-}
-                   _lhsIscope
-                   {-# LINE 1601 "attGr.hs" #-}
-                   )
-              _c2Oscope =
                   ({-# LINE 270 "./attGr.ag" #-}
                    _lhsIscope
-                   {-# LINE 1606 "attGr.hs" #-}
+                   {-# LINE 1602 "attGr.hs" #-}
+                   )
+              _c2Oscope =
+                  ({-# LINE 271 "./attGr.ag" #-}
+                   _lhsIscope
+                   {-# LINE 1607 "attGr.hs" #-}
                    )
               _lhsOtransformed =
-                  ({-# LINE 271 "./attGr.ag" #-}
+                  ({-# LINE 272 "./attGr.ag" #-}
                    CConjunction _c1Itransformed _c2Itransformed
-                   {-# LINE 1611 "attGr.hs" #-}
+                   {-# LINE 1612 "attGr.hs" #-}
                    )
               _lhsOformula =
-                  ({-# LINE 272 "./attGr.ag" #-}
+                  ({-# LINE 273 "./attGr.ag" #-}
                    _c1Iformula ++ " ^ " ++ _c2Iformula
-                   {-# LINE 1616 "attGr.hs" #-}
+                   {-# LINE 1617 "attGr.hs" #-}
                    )
               _lhsOeye =
-                  ({-# LINE 273 "./attGr.ag" #-}
+                  ({-# LINE 274 "./attGr.ag" #-}
                    CConjunction _c1Ieye _c2Ieye
-                   {-# LINE 1621 "attGr.hs" #-}
+                   {-# LINE 1622 "attGr.hs" #-}
                    )
               _lhsOeyeVar =
-                  ({-# LINE 274 "./attGr.ag" #-}
+                  ({-# LINE 275 "./attGr.ag" #-}
                    _c2IeyeVar `union` _c1IeyeVar
-                   {-# LINE 1626 "attGr.hs" #-}
+                   {-# LINE 1627 "attGr.hs" #-}
                    )
               _lhsOeyeEx =
-                  ({-# LINE 275 "./attGr.ag" #-}
+                  ({-# LINE 276 "./attGr.ag" #-}
                    _c2IeyeEx `union` _c1IeyeEx
-                   {-# LINE 1631 "attGr.hs" #-}
+                   {-# LINE 1632 "attGr.hs" #-}
                    )
               _c1OinsideQuotation =
-                  ({-# LINE 276 "./attGr.ag" #-}
-                   _lhsIinsideQuotation
-                   {-# LINE 1636 "attGr.hs" #-}
-                   )
-              _c2OinsideQuotation =
                   ({-# LINE 277 "./attGr.ag" #-}
                    _lhsIinsideQuotation
-                   {-# LINE 1641 "attGr.hs" #-}
+                   {-# LINE 1637 "attGr.hs" #-}
+                   )
+              _c2OinsideQuotation =
+                  ({-# LINE 278 "./attGr.ag" #-}
+                   _lhsIinsideQuotation
+                   {-# LINE 1642 "attGr.hs" #-}
                    )
               _lhsOdiff =
-                  ({-# LINE 278 "./attGr.ag" #-}
+                  ({-# LINE 279 "./attGr.ag" #-}
                    CConjunction _c1Idiff _c2Idiff
-                   {-# LINE 1646 "attGr.hs" #-}
+                   {-# LINE 1647 "attGr.hs" #-}
                    )
               _c1Oc =
-                  ({-# LINE 279 "./attGr.ag" #-}
-                   _lhsIc
-                   {-# LINE 1651 "attGr.hs" #-}
-                   )
-              _c2Oc =
                   ({-# LINE 280 "./attGr.ag" #-}
                    _lhsIc
-                   {-# LINE 1656 "attGr.hs" #-}
+                   {-# LINE 1652 "attGr.hs" #-}
+                   )
+              _c2Oc =
+                  ({-# LINE 281 "./attGr.ag" #-}
+                   _lhsIc
+                   {-# LINE 1657 "attGr.hs" #-}
                    )
               _lhsOcount =
-                  ({-# LINE 281 "./attGr.ag" #-}
+                  ({-# LINE 282 "./attGr.ag" #-}
                    max _c1Icount _c2Icount
-                   {-# LINE 1661 "attGr.hs" #-}
+                   {-# LINE 1662 "attGr.hs" #-}
                    )
               _lhsOdeep =
-                  ({-# LINE 282 "./attGr.ag" #-}
+                  ({-# LINE 283 "./attGr.ag" #-}
                    choose _c1Ideep _c2Ideep _c1Icount _c2Icount
-                   {-# LINE 1666 "attGr.hs" #-}
+                   {-# LINE 1667 "attGr.hs" #-}
                    )
               _lhsObe =
-                  ({-# LINE 283 "./attGr.ag" #-}
+                  ({-# LINE 284 "./attGr.ag" #-}
                    maximum [_c1Ibe, _c2Ibe]
-                   {-# LINE 1671 "attGr.hs" #-}
+                   {-# LINE 1672 "attGr.hs" #-}
                    )
               _lhsOcb =
-                  ({-# LINE 284 "./attGr.ag" #-}
+                  ({-# LINE 285 "./attGr.ag" #-}
                    maximum [_c1Icb, _c2Icb]
-                   {-# LINE 1676 "attGr.hs" #-}
+                   {-# LINE 1677 "attGr.hs" #-}
                    )
               _lhsOproof =
-                  ({-# LINE 285 "./attGr.ag" #-}
+                  ({-# LINE 286 "./attGr.ag" #-}
                    maximum [_c1Iproof, _c2Iproof]
-                   {-# LINE 1681 "attGr.hs" #-}
+                   {-# LINE 1682 "attGr.hs" #-}
                    )
               _lhsObwfe =
-                  ({-# LINE 286 "./attGr.ag" #-}
+                  ({-# LINE 287 "./attGr.ag" #-}
                    maximum [_c1Ibwfe, _c2Ibwfe ]
-                   {-# LINE 1686 "attGr.hs" #-}
+                   {-# LINE 1687 "attGr.hs" #-}
                    )
               _lhsObiscope =
-                  ({-# LINE 287 "./attGr.ag" #-}
+                  ({-# LINE 288 "./attGr.ag" #-}
                    _c2Ibiscope `union` _c1Ibiscope
-                   {-# LINE 1691 "attGr.hs" #-}
+                   {-# LINE 1692 "attGr.hs" #-}
                    )
               _c1Ouni =
-                  ({-# LINE 106 "./attGr.ag" #-}
+                  ({-# LINE 107 "./attGr.ag" #-}
                    _lhsIuni
-                   {-# LINE 1696 "attGr.hs" #-}
+                   {-# LINE 1697 "attGr.hs" #-}
                    )
               _c2Ouni =
-                  ({-# LINE 106 "./attGr.ag" #-}
+                  ({-# LINE 107 "./attGr.ag" #-}
                    _lhsIuni
-                   {-# LINE 1701 "attGr.hs" #-}
+                   {-# LINE 1702 "attGr.hs" #-}
                    )
               ( _c1Ibe,_c1Ibiscope,_c1Ibwfe,_c1Icb,_c1Icount,_c1Ideep,_c1Idiff,_c1Iex,_c1Ieye,_c1IeyeEx,_c1IeyeVar,_c1Iformula,_c1In1,_c1In2,_c1Iproof,_c1Itransformed) =
                   c1_ _c1Oc _c1OinsideQuotation _c1Oscope _c1Ouni
@@ -1793,104 +1794,104 @@ sem_S_Mainformula f_ =
          _fIproof :: Int
          _fItransformed :: CFormula
          _fOscope =
-             ({-# LINE 198 "./attGr.ag" #-}
-              _fIn1  `union` _fIn2
-              {-# LINE 1799 "attGr.hs" #-}
-              )
-         _fOuni =
              ({-# LINE 199 "./attGr.ag" #-}
               _fIn1  `union` _fIn2
-              {-# LINE 1804 "attGr.hs" #-}
+              {-# LINE 1800 "attGr.hs" #-}
+              )
+         _fOuni =
+             ({-# LINE 200 "./attGr.ag" #-}
+              _fIn1  `union` _fIn2
+              {-# LINE 1805 "attGr.hs" #-}
               )
          _lhsOex =
-             ({-# LINE 200 "./attGr.ag" #-}
+             ({-# LINE 201 "./attGr.ag" #-}
               _fIex
-              {-# LINE 1809 "attGr.hs" #-}
+              {-# LINE 1810 "attGr.hs" #-}
               )
          _lhsOtransformed =
-             ({-# LINE 201 "./attGr.ag" #-}
+             ({-# LINE 202 "./attGr.ag" #-}
               qua (sort (_fIn1  `union` _fIn2)) _fIex _fItransformed
-              {-# LINE 1814 "attGr.hs" #-}
+              {-# LINE 1815 "attGr.hs" #-}
               )
          _lhsOformula =
-             ({-# LINE 202 "./attGr.ag" #-}
+             ({-# LINE 203 "./attGr.ag" #-}
               quaf (sort  (_fIn1  `union` _fIn2)) _fIex   _fIformula
-              {-# LINE 1819 "attGr.hs" #-}
+              {-# LINE 1820 "attGr.hs" #-}
               )
          _lhsOeye =
-             ({-# LINE 203 "./attGr.ag" #-}
+             ({-# LINE 204 "./attGr.ag" #-}
               qua (sort _fIeyeVar ) _fIeyeEx _fIeye
-              {-# LINE 1824 "attGr.hs" #-}
+              {-# LINE 1825 "attGr.hs" #-}
               )
          _lhsOeyeEx =
-             ({-# LINE 204 "./attGr.ag" #-}
+             ({-# LINE 205 "./attGr.ag" #-}
               _fIeyeEx
-              {-# LINE 1829 "attGr.hs" #-}
+              {-# LINE 1830 "attGr.hs" #-}
               )
          _lhsOeyeVar =
-             ({-# LINE 205 "./attGr.ag" #-}
+             ({-# LINE 206 "./attGr.ag" #-}
               _fIeyeVar
-              {-# LINE 1834 "attGr.hs" #-}
+              {-# LINE 1835 "attGr.hs" #-}
               )
          _fOinsideQuotation =
-             ({-# LINE 206 "./attGr.ag" #-}
+             ({-# LINE 207 "./attGr.ag" #-}
               False
-              {-# LINE 1839 "attGr.hs" #-}
+              {-# LINE 1840 "attGr.hs" #-}
               )
          _lhsOdiff =
-             ({-# LINE 207 "./attGr.ag" #-}
+             ({-# LINE 208 "./attGr.ag" #-}
               qua (sort  _fIeyeVar) _fIex _fIdiff
-              {-# LINE 1844 "attGr.hs" #-}
+              {-# LINE 1845 "attGr.hs" #-}
               )
          _fOc =
-             ({-# LINE 208 "./attGr.ag" #-}
+             ({-# LINE 209 "./attGr.ag" #-}
               1
-              {-# LINE 1849 "attGr.hs" #-}
+              {-# LINE 1850 "attGr.hs" #-}
               )
          _lhsOcount =
-             ({-# LINE 209 "./attGr.ag" #-}
+             ({-# LINE 210 "./attGr.ag" #-}
               findDepth _fIn1 1 _fIcount
-              {-# LINE 1854 "attGr.hs" #-}
+              {-# LINE 1855 "attGr.hs" #-}
               )
          _lhsOdeep =
-             ({-# LINE 210 "./attGr.ag" #-}
+             ({-# LINE 211 "./attGr.ag" #-}
               deepest _fIn1 _fIdeep
-              {-# LINE 1859 "attGr.hs" #-}
+              {-# LINE 1860 "attGr.hs" #-}
               )
          _lhsObe =
-             ({-# LINE 211 "./attGr.ag" #-}
+             ({-# LINE 212 "./attGr.ag" #-}
               _fIbe
-              {-# LINE 1864 "attGr.hs" #-}
+              {-# LINE 1865 "attGr.hs" #-}
               )
          _lhsOcb =
-             ({-# LINE 212 "./attGr.ag" #-}
+             ({-# LINE 213 "./attGr.ag" #-}
               _fIcb
-              {-# LINE 1869 "attGr.hs" #-}
+              {-# LINE 1870 "attGr.hs" #-}
               )
          _lhsOproof =
-             ({-# LINE 213 "./attGr.ag" #-}
+             ({-# LINE 214 "./attGr.ag" #-}
               _fIproof
-              {-# LINE 1874 "attGr.hs" #-}
+              {-# LINE 1875 "attGr.hs" #-}
               )
          _lhsObwfe =
-             ({-# LINE 214 "./attGr.ag" #-}
+             ({-# LINE 215 "./attGr.ag" #-}
               _fIbwfe
-              {-# LINE 1879 "attGr.hs" #-}
+              {-# LINE 1880 "attGr.hs" #-}
               )
          _lhsObiscope =
-             ({-# LINE 215 "./attGr.ag" #-}
+             ({-# LINE 216 "./attGr.ag" #-}
               []
-              {-# LINE 1884 "attGr.hs" #-}
+              {-# LINE 1885 "attGr.hs" #-}
               )
          _lhsOn1 =
-             ({-# LINE 75 "./attGr.ag" #-}
+             ({-# LINE 76 "./attGr.ag" #-}
               _fIn1
-              {-# LINE 1889 "attGr.hs" #-}
+              {-# LINE 1890 "attGr.hs" #-}
               )
          _lhsOn2 =
-             ({-# LINE 76 "./attGr.ag" #-}
+             ({-# LINE 77 "./attGr.ag" #-}
               _fIn2
-              {-# LINE 1894 "attGr.hs" #-}
+              {-# LINE 1895 "attGr.hs" #-}
               )
          ( _fIbe,_fIbiscope,_fIbwfe,_fIcb,_fIcount,_fIdeep,_fIdiff,_fIex,_fIeye,_fIeyeEx,_fIeyeVar,_fIformula,_fIn1,_fIn2,_fIproof,_fItransformed) =
              f_ _fOc _fOinsideQuotation _fOscope _fOuni
@@ -1956,84 +1957,84 @@ sem_Term_Universal u_ =
               _lhsObwfe :: Int
               _lhsObiscope :: ([String])
               _lhsOn2 =
-                  ({-# LINE 290 "./attGr.ag" #-}
+                  ({-# LINE 291 "./attGr.ag" #-}
                    ["U"++ u_]
-                   {-# LINE 1962 "attGr.hs" #-}
+                   {-# LINE 1963 "attGr.hs" #-}
                    )
               _lhsOn1 =
-                  ({-# LINE 291 "./attGr.ag" #-}
-                   []
-                   {-# LINE 1967 "attGr.hs" #-}
-                   )
-              _lhsOex =
                   ({-# LINE 292 "./attGr.ag" #-}
                    []
-                   {-# LINE 1972 "attGr.hs" #-}
+                   {-# LINE 1968 "attGr.hs" #-}
+                   )
+              _lhsOex =
+                  ({-# LINE 293 "./attGr.ag" #-}
+                   []
+                   {-# LINE 1973 "attGr.hs" #-}
                    )
               _lhsOtransformed =
-                  ({-# LINE 293 "./attGr.ag" #-}
+                  ({-# LINE 294 "./attGr.ag" #-}
                    Var  ("U"++ u_)
-                   {-# LINE 1977 "attGr.hs" #-}
+                   {-# LINE 1978 "attGr.hs" #-}
                    )
               _lhsOformula =
-                  ({-# LINE 294 "./attGr.ag" #-}
+                  ({-# LINE 295 "./attGr.ag" #-}
                    "U"++ u_
-                   {-# LINE 1982 "attGr.hs" #-}
+                   {-# LINE 1983 "attGr.hs" #-}
                    )
               _lhsOeyeVar =
-                  ({-# LINE 295 "./attGr.ag" #-}
+                  ({-# LINE 296 "./attGr.ag" #-}
                    ["U" ++ u_]
-                   {-# LINE 1987 "attGr.hs" #-}
+                   {-# LINE 1988 "attGr.hs" #-}
                    )
               _lhsOeye =
-                  ({-# LINE 296 "./attGr.ag" #-}
+                  ({-# LINE 297 "./attGr.ag" #-}
                    Var  ("U"++ u_)
-                   {-# LINE 1992 "attGr.hs" #-}
+                   {-# LINE 1993 "attGr.hs" #-}
                    )
               _lhsOeyeEx =
-                  ({-# LINE 297 "./attGr.ag" #-}
+                  ({-# LINE 298 "./attGr.ag" #-}
                    []
-                   {-# LINE 1997 "attGr.hs" #-}
+                   {-# LINE 1998 "attGr.hs" #-}
                    )
               _lhsOdiff =
-                  ({-# LINE 298 "./attGr.ag" #-}
+                  ({-# LINE 299 "./attGr.ag" #-}
                    Var  ("U"++ u_)
-                   {-# LINE 2002 "attGr.hs" #-}
+                   {-# LINE 2003 "attGr.hs" #-}
                    )
               _lhsOcount =
-                  ({-# LINE 299 "./attGr.ag" #-}
+                  ({-# LINE 300 "./attGr.ag" #-}
                    0
-                   {-# LINE 2007 "attGr.hs" #-}
+                   {-# LINE 2008 "attGr.hs" #-}
                    )
               _lhsOdeep =
-                  ({-# LINE 300 "./attGr.ag" #-}
+                  ({-# LINE 301 "./attGr.ag" #-}
                    []
-                   {-# LINE 2012 "attGr.hs" #-}
+                   {-# LINE 2013 "attGr.hs" #-}
                    )
               _lhsObe =
-                  ({-# LINE 301 "./attGr.ag" #-}
-                   0
-                   {-# LINE 2017 "attGr.hs" #-}
-                   )
-              _lhsOcb =
                   ({-# LINE 302 "./attGr.ag" #-}
                    0
-                   {-# LINE 2022 "attGr.hs" #-}
+                   {-# LINE 2018 "attGr.hs" #-}
                    )
-              _lhsOproof =
+              _lhsOcb =
                   ({-# LINE 303 "./attGr.ag" #-}
                    0
-                   {-# LINE 2027 "attGr.hs" #-}
+                   {-# LINE 2023 "attGr.hs" #-}
                    )
-              _lhsObwfe =
+              _lhsOproof =
                   ({-# LINE 304 "./attGr.ag" #-}
                    0
-                   {-# LINE 2032 "attGr.hs" #-}
+                   {-# LINE 2028 "attGr.hs" #-}
+                   )
+              _lhsObwfe =
+                  ({-# LINE 305 "./attGr.ag" #-}
+                   0
+                   {-# LINE 2033 "attGr.hs" #-}
                    )
               _lhsObiscope =
-                  ({-# LINE 305 "./attGr.ag" #-}
+                  ({-# LINE 306 "./attGr.ag" #-}
                    []
-                   {-# LINE 2037 "attGr.hs" #-}
+                   {-# LINE 2038 "attGr.hs" #-}
                    )
           in  ( _lhsObe,_lhsObiscope,_lhsObwfe,_lhsOcb,_lhsOcount,_lhsOdeep,_lhsOdiff,_lhsOex,_lhsOeye,_lhsOeyeEx,_lhsOeyeVar,_lhsOformula,_lhsOn1,_lhsOn2,_lhsOproof,_lhsOtransformed)))
 sem_Term_Existential :: String ->
@@ -2060,84 +2061,84 @@ sem_Term_Existential ex_ =
               _lhsObwfe :: Int
               _lhsObiscope :: ([String])
               _lhsOn2 =
-                  ({-# LINE 308 "./attGr.ag" #-}
-                   []
-                   {-# LINE 2066 "attGr.hs" #-}
-                   )
-              _lhsOn1 =
                   ({-# LINE 309 "./attGr.ag" #-}
                    []
-                   {-# LINE 2071 "attGr.hs" #-}
+                   {-# LINE 2067 "attGr.hs" #-}
+                   )
+              _lhsOn1 =
+                  ({-# LINE 310 "./attGr.ag" #-}
+                   []
+                   {-# LINE 2072 "attGr.hs" #-}
                    )
               _lhsOex =
-                  ({-# LINE 310 "./attGr.ag" #-}
+                  ({-# LINE 311 "./attGr.ag" #-}
                    ["E"++ ex_]
-                   {-# LINE 2076 "attGr.hs" #-}
+                   {-# LINE 2077 "attGr.hs" #-}
                    )
               _lhsOtransformed =
-                  ({-# LINE 311 "./attGr.ag" #-}
+                  ({-# LINE 312 "./attGr.ag" #-}
                    Var ("E"++ ex_)
-                   {-# LINE 2081 "attGr.hs" #-}
+                   {-# LINE 2082 "attGr.hs" #-}
                    )
               _lhsOformula =
-                  ({-# LINE 312 "./attGr.ag" #-}
+                  ({-# LINE 313 "./attGr.ag" #-}
                    "E"++ ex_
-                   {-# LINE 2086 "attGr.hs" #-}
+                   {-# LINE 2087 "attGr.hs" #-}
                    )
               _lhsOeyeVar =
-                  ({-# LINE 313 "./attGr.ag" #-}
+                  ({-# LINE 314 "./attGr.ag" #-}
                    []
-                   {-# LINE 2091 "attGr.hs" #-}
+                   {-# LINE 2092 "attGr.hs" #-}
                    )
               _lhsOeye =
-                  ({-# LINE 314 "./attGr.ag" #-}
+                  ({-# LINE 315 "./attGr.ag" #-}
                    Var ("E"++ ex_)
-                   {-# LINE 2096 "attGr.hs" #-}
+                   {-# LINE 2097 "attGr.hs" #-}
                    )
               _lhsOeyeEx =
-                  ({-# LINE 315 "./attGr.ag" #-}
+                  ({-# LINE 316 "./attGr.ag" #-}
                    ["E"++ ex_]
-                   {-# LINE 2101 "attGr.hs" #-}
+                   {-# LINE 2102 "attGr.hs" #-}
                    )
               _lhsOdiff =
-                  ({-# LINE 316 "./attGr.ag" #-}
+                  ({-# LINE 317 "./attGr.ag" #-}
                    Var ("E"++ ex_)
-                   {-# LINE 2106 "attGr.hs" #-}
+                   {-# LINE 2107 "attGr.hs" #-}
                    )
               _lhsOcount =
-                  ({-# LINE 317 "./attGr.ag" #-}
+                  ({-# LINE 318 "./attGr.ag" #-}
                    0
-                   {-# LINE 2111 "attGr.hs" #-}
+                   {-# LINE 2112 "attGr.hs" #-}
                    )
               _lhsOdeep =
-                  ({-# LINE 318 "./attGr.ag" #-}
+                  ({-# LINE 319 "./attGr.ag" #-}
                    []
-                   {-# LINE 2116 "attGr.hs" #-}
+                   {-# LINE 2117 "attGr.hs" #-}
                    )
               _lhsObe =
-                  ({-# LINE 319 "./attGr.ag" #-}
-                   0
-                   {-# LINE 2121 "attGr.hs" #-}
-                   )
-              _lhsOcb =
                   ({-# LINE 320 "./attGr.ag" #-}
                    0
-                   {-# LINE 2126 "attGr.hs" #-}
+                   {-# LINE 2122 "attGr.hs" #-}
                    )
-              _lhsOproof =
+              _lhsOcb =
                   ({-# LINE 321 "./attGr.ag" #-}
                    0
-                   {-# LINE 2131 "attGr.hs" #-}
+                   {-# LINE 2127 "attGr.hs" #-}
                    )
-              _lhsObwfe =
+              _lhsOproof =
                   ({-# LINE 322 "./attGr.ag" #-}
                    0
-                   {-# LINE 2136 "attGr.hs" #-}
+                   {-# LINE 2132 "attGr.hs" #-}
+                   )
+              _lhsObwfe =
+                  ({-# LINE 323 "./attGr.ag" #-}
+                   0
+                   {-# LINE 2137 "attGr.hs" #-}
                    )
               _lhsObiscope =
-                  ({-# LINE 323 "./attGr.ag" #-}
+                  ({-# LINE 324 "./attGr.ag" #-}
                    []
-                   {-# LINE 2141 "attGr.hs" #-}
+                   {-# LINE 2142 "attGr.hs" #-}
                    )
           in  ( _lhsObe,_lhsObiscope,_lhsObwfe,_lhsOcb,_lhsOcount,_lhsOdeep,_lhsOdiff,_lhsOex,_lhsOeye,_lhsOeyeEx,_lhsOeyeVar,_lhsOformula,_lhsOn1,_lhsOn2,_lhsOproof,_lhsOtransformed)))
 sem_Term_URI :: String ->
@@ -2164,84 +2165,84 @@ sem_Term_URI uri_ =
               _lhsObwfe :: Int
               _lhsObiscope :: ([String])
               _lhsOn2 =
-                  ({-# LINE 325 "./attGr.ag" #-}
-                   []
-                   {-# LINE 2170 "attGr.hs" #-}
-                   )
-              _lhsOn1 =
                   ({-# LINE 326 "./attGr.ag" #-}
                    []
-                   {-# LINE 2175 "attGr.hs" #-}
+                   {-# LINE 2171 "attGr.hs" #-}
                    )
-              _lhsOex =
+              _lhsOn1 =
                   ({-# LINE 327 "./attGr.ag" #-}
                    []
-                   {-# LINE 2180 "attGr.hs" #-}
+                   {-# LINE 2176 "attGr.hs" #-}
+                   )
+              _lhsOex =
+                  ({-# LINE 328 "./attGr.ag" #-}
+                   []
+                   {-# LINE 2181 "attGr.hs" #-}
                    )
               _lhsOtransformed =
-                  ({-# LINE 328 "./attGr.ag" #-}
+                  ({-# LINE 329 "./attGr.ag" #-}
                    Con ("uri_"++ uri_)
-                   {-# LINE 2185 "attGr.hs" #-}
+                   {-# LINE 2186 "attGr.hs" #-}
                    )
               _lhsOformula =
-                  ({-# LINE 329 "./attGr.ag" #-}
+                  ({-# LINE 330 "./attGr.ag" #-}
                    "uri_"++ uri_
-                   {-# LINE 2190 "attGr.hs" #-}
+                   {-# LINE 2191 "attGr.hs" #-}
                    )
               _lhsOeyeVar =
-                  ({-# LINE 330 "./attGr.ag" #-}
+                  ({-# LINE 331 "./attGr.ag" #-}
                    []
-                   {-# LINE 2195 "attGr.hs" #-}
+                   {-# LINE 2196 "attGr.hs" #-}
                    )
               _lhsOeye =
-                  ({-# LINE 331 "./attGr.ag" #-}
+                  ({-# LINE 332 "./attGr.ag" #-}
                    Con ("uri_" ++ uri_)
-                   {-# LINE 2200 "attGr.hs" #-}
+                   {-# LINE 2201 "attGr.hs" #-}
                    )
               _lhsOeyeEx =
-                  ({-# LINE 332 "./attGr.ag" #-}
+                  ({-# LINE 333 "./attGr.ag" #-}
                    []
-                   {-# LINE 2205 "attGr.hs" #-}
+                   {-# LINE 2206 "attGr.hs" #-}
                    )
               _lhsOdiff =
-                  ({-# LINE 333 "./attGr.ag" #-}
+                  ({-# LINE 334 "./attGr.ag" #-}
                    Con ("uri_" ++ uri_)
-                   {-# LINE 2210 "attGr.hs" #-}
+                   {-# LINE 2211 "attGr.hs" #-}
                    )
               _lhsOcount =
-                  ({-# LINE 334 "./attGr.ag" #-}
+                  ({-# LINE 335 "./attGr.ag" #-}
                    0
-                   {-# LINE 2215 "attGr.hs" #-}
+                   {-# LINE 2216 "attGr.hs" #-}
                    )
               _lhsOdeep =
-                  ({-# LINE 335 "./attGr.ag" #-}
+                  ({-# LINE 336 "./attGr.ag" #-}
                    []
-                   {-# LINE 2220 "attGr.hs" #-}
+                   {-# LINE 2221 "attGr.hs" #-}
                    )
               _lhsObe =
-                  ({-# LINE 336 "./attGr.ag" #-}
+                  ({-# LINE 337 "./attGr.ag" #-}
                    isBuiltIn uri_
-                   {-# LINE 2225 "attGr.hs" #-}
+                   {-# LINE 2226 "attGr.hs" #-}
                    )
               _lhsOcb =
-                  ({-# LINE 337 "./attGr.ag" #-}
+                  ({-# LINE 338 "./attGr.ag" #-}
                    0
-                   {-# LINE 2230 "attGr.hs" #-}
+                   {-# LINE 2231 "attGr.hs" #-}
                    )
               _lhsOproof =
-                  ({-# LINE 338 "./attGr.ag" #-}
+                  ({-# LINE 339 "./attGr.ag" #-}
                    isProof uri_
-                   {-# LINE 2235 "attGr.hs" #-}
+                   {-# LINE 2236 "attGr.hs" #-}
                    )
               _lhsObwfe =
-                  ({-# LINE 339 "./attGr.ag" #-}
+                  ({-# LINE 340 "./attGr.ag" #-}
                    0
-                   {-# LINE 2240 "attGr.hs" #-}
+                   {-# LINE 2241 "attGr.hs" #-}
                    )
               _lhsObiscope =
-                  ({-# LINE 340 "./attGr.ag" #-}
+                  ({-# LINE 341 "./attGr.ag" #-}
                    []
-                   {-# LINE 2245 "attGr.hs" #-}
+                   {-# LINE 2246 "attGr.hs" #-}
                    )
           in  ( _lhsObe,_lhsObiscope,_lhsObwfe,_lhsOcb,_lhsOcount,_lhsOdeep,_lhsOdiff,_lhsOex,_lhsOeye,_lhsOeyeEx,_lhsOeyeVar,_lhsOformula,_lhsOn1,_lhsOn2,_lhsOproof,_lhsOtransformed)))
 sem_Term_Literal :: String ->
@@ -2268,84 +2269,84 @@ sem_Term_Literal l_ =
               _lhsObwfe :: Int
               _lhsObiscope :: ([String])
               _lhsOn2 =
-                  ({-# LINE 342 "./attGr.ag" #-}
-                   []
-                   {-# LINE 2274 "attGr.hs" #-}
-                   )
-              _lhsOn1 =
                   ({-# LINE 343 "./attGr.ag" #-}
                    []
-                   {-# LINE 2279 "attGr.hs" #-}
+                   {-# LINE 2275 "attGr.hs" #-}
                    )
-              _lhsOex =
+              _lhsOn1 =
                   ({-# LINE 344 "./attGr.ag" #-}
                    []
-                   {-# LINE 2284 "attGr.hs" #-}
+                   {-# LINE 2280 "attGr.hs" #-}
+                   )
+              _lhsOex =
+                  ({-# LINE 345 "./attGr.ag" #-}
+                   []
+                   {-# LINE 2285 "attGr.hs" #-}
                    )
               _lhsOtransformed =
-                  ({-# LINE 345 "./attGr.ag" #-}
+                  ({-# LINE 346 "./attGr.ag" #-}
                    Con ("l_"++ l_)
-                   {-# LINE 2289 "attGr.hs" #-}
+                   {-# LINE 2290 "attGr.hs" #-}
                    )
               _lhsOformula =
-                  ({-# LINE 346 "./attGr.ag" #-}
+                  ({-# LINE 347 "./attGr.ag" #-}
                    "l_"++ l_
-                   {-# LINE 2294 "attGr.hs" #-}
+                   {-# LINE 2295 "attGr.hs" #-}
                    )
               _lhsOeyeVar =
-                  ({-# LINE 347 "./attGr.ag" #-}
+                  ({-# LINE 348 "./attGr.ag" #-}
                    []
-                   {-# LINE 2299 "attGr.hs" #-}
+                   {-# LINE 2300 "attGr.hs" #-}
                    )
               _lhsOeye =
-                  ({-# LINE 348 "./attGr.ag" #-}
+                  ({-# LINE 349 "./attGr.ag" #-}
                    Con ("l_"++ l_)
-                   {-# LINE 2304 "attGr.hs" #-}
+                   {-# LINE 2305 "attGr.hs" #-}
                    )
               _lhsOeyeEx =
-                  ({-# LINE 349 "./attGr.ag" #-}
+                  ({-# LINE 350 "./attGr.ag" #-}
                    []
-                   {-# LINE 2309 "attGr.hs" #-}
+                   {-# LINE 2310 "attGr.hs" #-}
                    )
               _lhsOdiff =
-                  ({-# LINE 350 "./attGr.ag" #-}
+                  ({-# LINE 351 "./attGr.ag" #-}
                    Con ("l_"++ l_)
-                   {-# LINE 2314 "attGr.hs" #-}
+                   {-# LINE 2315 "attGr.hs" #-}
                    )
               _lhsOcount =
-                  ({-# LINE 351 "./attGr.ag" #-}
+                  ({-# LINE 352 "./attGr.ag" #-}
                    0
-                   {-# LINE 2319 "attGr.hs" #-}
+                   {-# LINE 2320 "attGr.hs" #-}
                    )
               _lhsOdeep =
-                  ({-# LINE 352 "./attGr.ag" #-}
+                  ({-# LINE 353 "./attGr.ag" #-}
                    []
-                   {-# LINE 2324 "attGr.hs" #-}
+                   {-# LINE 2325 "attGr.hs" #-}
                    )
               _lhsObe =
-                  ({-# LINE 353 "./attGr.ag" #-}
-                   0
-                   {-# LINE 2329 "attGr.hs" #-}
-                   )
-              _lhsOcb =
                   ({-# LINE 354 "./attGr.ag" #-}
                    0
-                   {-# LINE 2334 "attGr.hs" #-}
+                   {-# LINE 2330 "attGr.hs" #-}
                    )
-              _lhsOproof =
+              _lhsOcb =
                   ({-# LINE 355 "./attGr.ag" #-}
                    0
-                   {-# LINE 2339 "attGr.hs" #-}
+                   {-# LINE 2335 "attGr.hs" #-}
                    )
-              _lhsObwfe =
+              _lhsOproof =
                   ({-# LINE 356 "./attGr.ag" #-}
                    0
-                   {-# LINE 2344 "attGr.hs" #-}
+                   {-# LINE 2340 "attGr.hs" #-}
+                   )
+              _lhsObwfe =
+                  ({-# LINE 357 "./attGr.ag" #-}
+                   0
+                   {-# LINE 2345 "attGr.hs" #-}
                    )
               _lhsObiscope =
-                  ({-# LINE 357 "./attGr.ag" #-}
+                  ({-# LINE 358 "./attGr.ag" #-}
                    []
-                   {-# LINE 2349 "attGr.hs" #-}
+                   {-# LINE 2350 "attGr.hs" #-}
                    )
           in  ( _lhsObe,_lhsObiscope,_lhsObwfe,_lhsOcb,_lhsOcount,_lhsOdeep,_lhsOdiff,_lhsOex,_lhsOeye,_lhsOeyeEx,_lhsOeyeVar,_lhsOformula,_lhsOn1,_lhsOn2,_lhsOproof,_lhsOtransformed)))
 sem_Term_Exp :: T_Expression ->
@@ -2389,99 +2390,99 @@ sem_Term_Exp e_ =
               _eIproof :: Int
               _eItransformed :: CExpression
               _lhsOn2 =
-                  ({-# LINE 359 "./attGr.ag" #-}
+                  ({-# LINE 360 "./attGr.ag" #-}
                    []
-                   {-# LINE 2395 "attGr.hs" #-}
+                   {-# LINE 2396 "attGr.hs" #-}
                    )
               _lhsOn1 =
-                  ({-# LINE 360 "./attGr.ag" #-}
+                  ({-# LINE 361 "./attGr.ag" #-}
                    _eIn1
-                   {-# LINE 2400 "attGr.hs" #-}
+                   {-# LINE 2401 "attGr.hs" #-}
                    )
               _lhsOex =
-                  ({-# LINE 361 "./attGr.ag" #-}
+                  ({-# LINE 362 "./attGr.ag" #-}
                    []
-                   {-# LINE 2405 "attGr.hs" #-}
+                   {-# LINE 2406 "attGr.hs" #-}
                    )
               _lhsOtransformed =
-                  ({-# LINE 362 "./attGr.ag" #-}
+                  ({-# LINE 363 "./attGr.ag" #-}
                    CExp _eItransformed
-                   {-# LINE 2410 "attGr.hs" #-}
+                   {-# LINE 2411 "attGr.hs" #-}
                    )
               _lhsOformula =
-                  ({-# LINE 363 "./attGr.ag" #-}
+                  ({-# LINE 364 "./attGr.ag" #-}
                    _eIformula
-                   {-# LINE 2415 "attGr.hs" #-}
+                   {-# LINE 2416 "attGr.hs" #-}
                    )
               _lhsOeye =
-                  ({-# LINE 364 "./attGr.ag" #-}
+                  ({-# LINE 365 "./attGr.ag" #-}
                    CExp _eIeye
-                   {-# LINE 2420 "attGr.hs" #-}
+                   {-# LINE 2421 "attGr.hs" #-}
                    )
               _lhsOeyeEx =
-                  ({-# LINE 365 "./attGr.ag" #-}
+                  ({-# LINE 366 "./attGr.ag" #-}
                    exception _lhsIvarInImpException _lhsIinsideQuotation _eIeyeEx
-                   {-# LINE 2425 "attGr.hs" #-}
+                   {-# LINE 2426 "attGr.hs" #-}
                    )
               _eOinsideQuotation =
-                  ({-# LINE 366 "./attGr.ag" #-}
+                  ({-# LINE 367 "./attGr.ag" #-}
                    True
-                   {-# LINE 2430 "attGr.hs" #-}
+                   {-# LINE 2431 "attGr.hs" #-}
                    )
               _lhsOdiff =
-                  ({-# LINE 367 "./attGr.ag" #-}
+                  ({-# LINE 368 "./attGr.ag" #-}
                    CExp _eIdiff
-                   {-# LINE 2435 "attGr.hs" #-}
+                   {-# LINE 2436 "attGr.hs" #-}
                    )
               _lhsOcount =
-                  ({-# LINE 368 "./attGr.ag" #-}
+                  ({-# LINE 369 "./attGr.ag" #-}
                    _eIcount
-                   {-# LINE 2440 "attGr.hs" #-}
+                   {-# LINE 2441 "attGr.hs" #-}
                    )
               _lhsOdeep =
-                  ({-# LINE 369 "./attGr.ag" #-}
+                  ({-# LINE 370 "./attGr.ag" #-}
                    _eIdeep
-                   {-# LINE 2445 "attGr.hs" #-}
+                   {-# LINE 2446 "attGr.hs" #-}
                    )
               _lhsObe =
-                  ({-# LINE 370 "./attGr.ag" #-}
+                  ({-# LINE 371 "./attGr.ag" #-}
                    _eIbe
-                   {-# LINE 2450 "attGr.hs" #-}
+                   {-# LINE 2451 "attGr.hs" #-}
                    )
               _lhsOcb =
-                  ({-# LINE 371 "./attGr.ag" #-}
+                  ({-# LINE 372 "./attGr.ag" #-}
                    _eIcb
-                   {-# LINE 2455 "attGr.hs" #-}
+                   {-# LINE 2456 "attGr.hs" #-}
                    )
               _lhsOproof =
-                  ({-# LINE 372 "./attGr.ag" #-}
+                  ({-# LINE 373 "./attGr.ag" #-}
                    0
-                   {-# LINE 2460 "attGr.hs" #-}
+                   {-# LINE 2461 "attGr.hs" #-}
                    )
               _lhsObwfe =
-                  ({-# LINE 373 "./attGr.ag" #-}
+                  ({-# LINE 374 "./attGr.ag" #-}
                    _eIbwfe
-                   {-# LINE 2465 "attGr.hs" #-}
+                   {-# LINE 2466 "attGr.hs" #-}
                    )
               _lhsObiscope =
-                  ({-# LINE 374 "./attGr.ag" #-}
+                  ({-# LINE 375 "./attGr.ag" #-}
                    _eIbiscope
-                   {-# LINE 2470 "attGr.hs" #-}
+                   {-# LINE 2471 "attGr.hs" #-}
                    )
               _lhsOeyeVar =
-                  ({-# LINE 143 "./attGr.ag" #-}
+                  ({-# LINE 144 "./attGr.ag" #-}
                    _eIeyeVar
-                   {-# LINE 2475 "attGr.hs" #-}
+                   {-# LINE 2476 "attGr.hs" #-}
                    )
               _eOc =
-                  ({-# LINE 180 "./attGr.ag" #-}
+                  ({-# LINE 181 "./attGr.ag" #-}
                    _lhsIc
-                   {-# LINE 2480 "attGr.hs" #-}
+                   {-# LINE 2481 "attGr.hs" #-}
                    )
               _eOscope =
-                  ({-# LINE 168 "./attGr.ag" #-}
+                  ({-# LINE 169 "./attGr.ag" #-}
                    _lhsIscope
-                   {-# LINE 2485 "attGr.hs" #-}
+                   {-# LINE 2486 "attGr.hs" #-}
                    )
               ( _eIbe,_eIbiscope,_eIbwfe,_eIcb,_eIcount,_eIdeep,_eIdiff,_eIeye,_eIeyeEx,_eIeyeVar,_eIformula,_eIn1,_eIproof,_eItransformed) =
                   e_ _eOc _eOinsideQuotation _eOscope
@@ -2551,124 +2552,124 @@ sem_Term_List term_ list_ =
               _listIproof :: Int
               _listItransformed :: CTerm
               _lhsOn2 =
-                  ({-# LINE 377 "./attGr.ag" #-}
+                  ({-# LINE 378 "./attGr.ag" #-}
                    _termIn2 `union` _listIn2
-                   {-# LINE 2557 "attGr.hs" #-}
+                   {-# LINE 2558 "attGr.hs" #-}
                    )
               _lhsOn1 =
-                  ({-# LINE 378 "./attGr.ag" #-}
+                  ({-# LINE 379 "./attGr.ag" #-}
                    _termIn1 `union` _listIn1
-                   {-# LINE 2562 "attGr.hs" #-}
+                   {-# LINE 2563 "attGr.hs" #-}
                    )
               _lhsOex =
-                  ({-# LINE 379 "./attGr.ag" #-}
+                  ({-# LINE 380 "./attGr.ag" #-}
                    _termIex `union` _listIex
-                   {-# LINE 2567 "attGr.hs" #-}
+                   {-# LINE 2568 "attGr.hs" #-}
                    )
               _lhsOtransformed =
-                  ({-# LINE 380 "./attGr.ag" #-}
+                  ({-# LINE 381 "./attGr.ag" #-}
                    CList _termItransformed _listItransformed
-                   {-# LINE 2572 "attGr.hs" #-}
+                   {-# LINE 2573 "attGr.hs" #-}
                    )
               _lhsOformula =
-                  ({-# LINE 381 "./attGr.ag" #-}
+                  ({-# LINE 382 "./attGr.ag" #-}
                    "(" ++ _termIformula ++ "," ++ _listIformula ++ ")"
-                   {-# LINE 2577 "attGr.hs" #-}
+                   {-# LINE 2578 "attGr.hs" #-}
                    )
               _lhsOeyeVar =
-                  ({-# LINE 382 "./attGr.ag" #-}
+                  ({-# LINE 383 "./attGr.ag" #-}
                    _termIeyeVar ++ _listIeyeVar
-                   {-# LINE 2582 "attGr.hs" #-}
+                   {-# LINE 2583 "attGr.hs" #-}
                    )
               _lhsOeye =
-                  ({-# LINE 383 "./attGr.ag" #-}
+                  ({-# LINE 384 "./attGr.ag" #-}
                    CList _termItransformed _listItransformed
-                   {-# LINE 2587 "attGr.hs" #-}
+                   {-# LINE 2588 "attGr.hs" #-}
                    )
               _lhsOeyeEx =
-                  ({-# LINE 384 "./attGr.ag" #-}
+                  ({-# LINE 385 "./attGr.ag" #-}
                    _termIeyeEx ++ _listIeyeEx
-                   {-# LINE 2592 "attGr.hs" #-}
+                   {-# LINE 2593 "attGr.hs" #-}
                    )
               _lhsOdiff =
-                  ({-# LINE 385 "./attGr.ag" #-}
+                  ({-# LINE 386 "./attGr.ag" #-}
                    CList _termIdiff _listIdiff
-                   {-# LINE 2597 "attGr.hs" #-}
+                   {-# LINE 2598 "attGr.hs" #-}
                    )
               _termOc =
-                  ({-# LINE 386 "./attGr.ag" #-}
-                   _lhsIc
-                   {-# LINE 2602 "attGr.hs" #-}
-                   )
-              _listOc =
                   ({-# LINE 387 "./attGr.ag" #-}
                    _lhsIc
-                   {-# LINE 2607 "attGr.hs" #-}
+                   {-# LINE 2603 "attGr.hs" #-}
+                   )
+              _listOc =
+                  ({-# LINE 388 "./attGr.ag" #-}
+                   _lhsIc
+                   {-# LINE 2608 "attGr.hs" #-}
                    )
               _lhsOcount =
-                  ({-# LINE 388 "./attGr.ag" #-}
+                  ({-# LINE 389 "./attGr.ag" #-}
                    max _termIcount _listIcount
-                   {-# LINE 2612 "attGr.hs" #-}
+                   {-# LINE 2613 "attGr.hs" #-}
                    )
               _lhsOdeep =
-                  ({-# LINE 389 "./attGr.ag" #-}
+                  ({-# LINE 390 "./attGr.ag" #-}
                    _termIdeep `union` _listIdeep
-                   {-# LINE 2617 "attGr.hs" #-}
+                   {-# LINE 2618 "attGr.hs" #-}
                    )
               _lhsObe =
-                  ({-# LINE 390 "./attGr.ag" #-}
+                  ({-# LINE 391 "./attGr.ag" #-}
                    0
-                   {-# LINE 2622 "attGr.hs" #-}
+                   {-# LINE 2623 "attGr.hs" #-}
                    )
               _lhsOcb =
-                  ({-# LINE 391 "./attGr.ag" #-}
+                  ({-# LINE 392 "./attGr.ag" #-}
                    maximum [_termIcb, _listIcb]
-                   {-# LINE 2627 "attGr.hs" #-}
+                   {-# LINE 2628 "attGr.hs" #-}
                    )
               _lhsOproof =
-                  ({-# LINE 392 "./attGr.ag" #-}
+                  ({-# LINE 393 "./attGr.ag" #-}
                    0
-                   {-# LINE 2632 "attGr.hs" #-}
+                   {-# LINE 2633 "attGr.hs" #-}
                    )
               _lhsObwfe =
-                  ({-# LINE 393 "./attGr.ag" #-}
+                  ({-# LINE 394 "./attGr.ag" #-}
                    maximum [_termIbwfe, _listIbwfe]
-                   {-# LINE 2637 "attGr.hs" #-}
+                   {-# LINE 2638 "attGr.hs" #-}
                    )
               _lhsObiscope =
-                  ({-# LINE 394 "./attGr.ag" #-}
+                  ({-# LINE 395 "./attGr.ag" #-}
                    _termIbiscope `union` _listIbiscope
-                   {-# LINE 2642 "attGr.hs" #-}
+                   {-# LINE 2643 "attGr.hs" #-}
                    )
               _termOinsideQuotation =
-                  ({-# LINE 145 "./attGr.ag" #-}
+                  ({-# LINE 146 "./attGr.ag" #-}
                    _lhsIinsideQuotation
-                   {-# LINE 2647 "attGr.hs" #-}
+                   {-# LINE 2648 "attGr.hs" #-}
                    )
               _termOscope =
-                  ({-# LINE 137 "./attGr.ag" #-}
+                  ({-# LINE 138 "./attGr.ag" #-}
                    _lhsIscope
-                   {-# LINE 2652 "attGr.hs" #-}
+                   {-# LINE 2653 "attGr.hs" #-}
                    )
               _termOvarInImpException =
-                  ({-# LINE 146 "./attGr.ag" #-}
+                  ({-# LINE 147 "./attGr.ag" #-}
                    _lhsIvarInImpException
-                   {-# LINE 2657 "attGr.hs" #-}
+                   {-# LINE 2658 "attGr.hs" #-}
                    )
               _listOinsideQuotation =
-                  ({-# LINE 145 "./attGr.ag" #-}
+                  ({-# LINE 146 "./attGr.ag" #-}
                    _lhsIinsideQuotation
-                   {-# LINE 2662 "attGr.hs" #-}
+                   {-# LINE 2663 "attGr.hs" #-}
                    )
               _listOscope =
-                  ({-# LINE 137 "./attGr.ag" #-}
+                  ({-# LINE 138 "./attGr.ag" #-}
                    _lhsIscope
-                   {-# LINE 2667 "attGr.hs" #-}
+                   {-# LINE 2668 "attGr.hs" #-}
                    )
               _listOvarInImpException =
-                  ({-# LINE 146 "./attGr.ag" #-}
+                  ({-# LINE 147 "./attGr.ag" #-}
                    _lhsIvarInImpException
-                   {-# LINE 2672 "attGr.hs" #-}
+                   {-# LINE 2673 "attGr.hs" #-}
                    )
               ( _termIbe,_termIbiscope,_termIbwfe,_termIcb,_termIcount,_termIdeep,_termIdiff,_termIex,_termIeye,_termIeyeEx,_termIeyeVar,_termIformula,_termIn1,_termIn2,_termIproof,_termItransformed) =
                   term_ _termOc _termOinsideQuotation _termOscope _termOvarInImpException
