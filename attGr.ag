@@ -240,7 +240,7 @@ sem Formula
             lhs.cb = maximum [@s.cb, @p.cb, @o.cb]
             lhs.proof = @o.proof
             lhs.bwfe = maximum [ @p.bwfe, @s.bwfe, @o.bwfe]
-            lhs.biscope = universalsInBuiltins @p.be (@s.n1  `union` @o.n1) ((@s.biscope `union` @p.biscope) `union` @o.biscope)
+            lhs.biscope = universalsInBuiltins @p.be (@s.eyeVar  `union` @o.eyeVar) ((@s.biscope `union` @p.biscope) `union` @o.biscope)
  
                
    | Implication lhs.n2 = []
@@ -753,7 +753,7 @@ makeTable names ([a , b, c , d, e1, e, f, r, p]:v) stat = (head names) ++ (repli
 
 
 lastLine :: [Int]-> String
-lastLine [a,b,c, d, e, r1, r2, r3, bi, pc] = "----------------------------------------------------------------------------------------------------" ++ "\n"
+lastLine [a,b,c, d, e, r1, r2, r3, bi, pc] = "--------------------------------------------------------------------------------------------------------------" ++ "\n"
                       ++ "Absolute Number (from " 
                       ++ (show d) ++ "): " 
                       ++ (replicate(15 - (length(show d))) ' ')

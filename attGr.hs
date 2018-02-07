@@ -337,7 +337,7 @@ makeTable names ([a , b, c , d, e1, e, f, r, p]:v) stat = (head names) ++ (repli
 
 
 lastLine :: [Int]-> String
-lastLine [a,b,c, d, e, r1, r2, r3, bi, pc] = "----------------------------------------------------------------------------------------------------" ++ "\n"
+lastLine [a,b,c, d, e, r1, r2, r3, bi, pc] = "--------------------------------------------------------------------------------------------------------------" ++ "\n"
                       ++ "Absolute Number (from " 
                       ++ (show d) ++ "): " 
                       ++ (replicate(15 - (length(show d))) ' ')
@@ -1318,7 +1318,7 @@ sem_Formula_Triple s_ p_ o_ =
                    )
               _lhsObiscope =
                   ({-# LINE 243 "./attGr.ag" #-}
-                   universalsInBuiltins _pIbe (_sIn1  `union` _oIn1) ((_sIbiscope `union` _pIbiscope) `union` _oIbiscope)
+                   universalsInBuiltins _pIbe (_sIeyeVar  `union` _oIeyeVar) ((_sIbiscope `union` _pIbiscope) `union` _oIbiscope)
                    {-# LINE 1323 "attGr.hs" #-}
                    )
               _sOscope =
