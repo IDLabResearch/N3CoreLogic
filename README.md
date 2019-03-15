@@ -35,7 +35,7 @@ compare EYE and Cwm to a reference interpretation where the existentials are int
 (according to an older version of EYE).
 
 the resulting document also shows information about the different documents, in particular:
-1. builtin: does the file contain knows builtins (0=no, 1=yes)
+1. builtin: does the file contain builtins (0=no, 1=yes)
 2. proof: is the file a proof (0=no, 1=yes)
 3. nested: how deeply nested is the deepest nested formula expression? This function counts the nesting of curly brackets {}.
 4. depth: how deeply nested do we find the deepest variable (note that some variables occurring in brackets are already scoped by another variables, look into the paper for details).
